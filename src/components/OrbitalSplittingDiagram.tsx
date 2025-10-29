@@ -22,17 +22,18 @@ function calculateSplitting(geometry, distance, ligandStrength) {
     return energies;
   } else if (geometry === "squarePlanar") {
     const energies = {
-      dx2y2: base * 0.8,   // highest energy (eg orbital - most destabilized)
-      dz2: base * 0.6,     // high energy (eg orbital - destabilized)
-      dxy: -base * 0.4,    // lower energy (t2g orbital - stabilized)
-      dxz: -base * 0.4,    // lower energy (t2g orbital - stabilized)
-      dyz: -base * 0.4,    // lower energy (t2g orbital - stabilized)
+      dx2y2: base * 0.8,   // highest energy (points directly at 4 ligands in xy-plane - most destabilized)
+      dxy: base * 0.65,    // high energy (in xy-plane but rotated 45° - significant interaction with ligands)
+      dz2: base * 0.5,     // moderate-high energy (points along z-axis - moderate destabilization)
+      dxz: -base * 0.4,    // lower energy (points out of xy-plane - stabilized)
+      dyz: -base * 0.4,    // lower energy (points out of xy-plane - stabilized)
       splitting: base * 1.2
     };
     console.log(`🔺 Square Planar Energies:`, energies);
-    console.log(`   dx²-y²: ${energies.dx2y2.toFixed(3)} (highest energy - most destabilized)`);
-    console.log(`   dz²: ${energies.dz2.toFixed(3)} (high energy - destabilized)`);
-    console.log(`   dxy, dxz, dyz: ${energies.dxy.toFixed(3)} (lower energy - stabilized)`);
+    console.log(`   dx²-y²: ${energies.dx2y2.toFixed(3)} (highest energy - most destabilized, points at ligands)`);
+    console.log(`   dxy: ${energies.dxy.toFixed(3)} (high energy - in xy-plane but rotated 45°, significant interaction)`);
+    console.log(`   dz²: ${energies.dz2.toFixed(3)} (moderate-high energy - points along z-axis)`);
+    console.log(`   dxz, dyz: ${energies.dxz.toFixed(3)} (lower energy - stabilized, point away from ligands)`);
     console.log(`   Δₛₚ: ${energies.splitting.toFixed(3)}`);
     return energies;
   }
@@ -287,23 +288,14 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true }) {
         width: '100%',
         height: '100%'
       }}>
-      {/* Lower energy orbitals - all at same energy level */}
-      <EnergyLevel 
-        label="dxy" 
-        energy={energies.dxy} 
-        color="#4fc3f7" 
-        geometry="squarePlanar"
-        orbitalType="lower"
-        index={0}
-        isDarkMode={isDarkMode}
-      />
+      {/* Lower energy orbitals - point away from ligands */}
       <EnergyLevel 
         label="dxz" 
         energy={energies.dxz} 
         color="#4fc3f7" 
         geometry="squarePlanar"
         orbitalType="lower"
-        index={1}
+        index={0}
         isDarkMode={isDarkMode}
       />
       <EnergyLevel 
@@ -312,14 +304,25 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true }) {
         color="#4fc3f7" 
         geometry="squarePlanar"
         orbitalType="lower"
+        index={1}
+        isDarkMode={isDarkMode}
+      />
+      
+      {/* High energy orbital - points along z-axis */}
+      <EnergyLevel 
+        label="dz²" 
+        energy={energies.dz2} 
+        color="#ffa726" 
+        geometry="squarePlanar"
+        orbitalType="moderate"
         index={2}
         isDarkMode={isDarkMode}
       />
       
-      {/* Moderate energy orbital - positioned near center */}
+      {/* High energy orbital - in xy-plane but rotated 45° */}
       <EnergyLevel 
-        label="dz²" 
-        energy={energies.dz2} 
+        label="dxy" 
+        energy={energies.dxy} 
         color="#ffa726" 
         geometry="squarePlanar"
         orbitalType="moderate"
@@ -327,7 +330,7 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true }) {
         isDarkMode={isDarkMode}
       />
       
-      {/* Highest energy orbital - positioned well above center */}
+      {/* Highest energy orbital - points directly at 4 ligands */}
       <EnergyLevel 
         label="dx²-y²" 
         energy={energies.dx2y2} 
