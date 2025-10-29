@@ -123,7 +123,7 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true }) {
           right: 0,
           top: '50%',
           height: '1px',
-          background: '#666',
+          background: isDarkMode ? '#666' : '#999',
           opacity: 0.5
         }}
       />
@@ -134,7 +134,7 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true }) {
           position: 'absolute',
           left: '5px',
           top: '10%',
-          color: '#888',
+          color: isDarkMode ? '#888' : '#999',
           fontSize: '0.7rem'
         }}
       >
@@ -145,7 +145,7 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true }) {
           position: 'absolute',
           left: '5px',
           bottom: '10%',
-          color: '#888',
+          color: isDarkMode ? '#888' : '#999',
           fontSize: '0.7rem'
         }}
       >
@@ -249,7 +249,7 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true }) {
           right: 0,
           top: '50%',
           height: '1px',
-          background: '#666',
+          background: isDarkMode ? '#666' : '#999',
           opacity: 0.5
         }}
       />
@@ -260,7 +260,7 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true }) {
           position: 'absolute',
           left: '5px',
           top: '10%',
-          color: '#888',
+          color: isDarkMode ? '#888' : '#999',
           fontSize: '0.7rem'
         }}
       >
@@ -271,7 +271,7 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true }) {
           position: 'absolute',
           left: '5px',
           bottom: '10%',
-          color: '#888',
+          color: isDarkMode ? '#888' : '#999',
           fontSize: '0.7rem'
         }}
       >
@@ -374,7 +374,7 @@ export default function OrbitalSplittingDiagram({
         sx={{ 
           mb: { xs: 1, sm: 2 }, 
           textAlign: 'center',
-          color: '#90caf9',
+          color: isDarkMode ? '#90caf9' : '#1976d2',
           fontWeight: 'bold',
           fontSize: { xs: '1rem', sm: '1.25rem' }
         }}
@@ -387,7 +387,7 @@ export default function OrbitalSplittingDiagram({
         sx={{ 
           mb: { xs: 1, sm: 2 }, 
           textAlign: 'center',
-          color: '#aaa',
+          color: isDarkMode ? '#aaa' : '#666',
           fontSize: { xs: '0.8rem', sm: '0.9rem' }
         }}
       >
@@ -412,7 +412,7 @@ export default function OrbitalSplittingDiagram({
         <Typography 
           variant="caption" 
           sx={{ 
-            color: '#888', 
+            color: isDarkMode ? '#888' : '#999', 
             display: 'block', 
             mb: 1,
             fontSize: { xs: '0.7rem', sm: '0.8rem' }
@@ -425,26 +425,26 @@ export default function OrbitalSplittingDiagram({
             <>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Box sx={{ width: 12, height: 2, backgroundColor: '#4fc3f7' }} />
-                <Typography variant="caption" sx={{ color: '#aaa', fontSize: '0.7rem' }}>t₂g</Typography>
+                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>t₂g</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Box sx={{ width: 12, height: 2, backgroundColor: '#ff6b6b' }} />
-                <Typography variant="caption" sx={{ color: '#aaa', fontSize: '0.7rem' }}>eg</Typography>
+                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>eg</Typography>
               </Box>
             </>
           ) : (
             <>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Box sx={{ width: 12, height: 2, backgroundColor: '#4fc3f7' }} />
-                <Typography variant="caption" sx={{ color: '#aaa', fontSize: '0.7rem' }}>Lower</Typography>
+                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>Lower</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Box sx={{ width: 12, height: 2, backgroundColor: '#ffa726' }} />
-                <Typography variant="caption" sx={{ color: '#aaa', fontSize: '0.7rem' }}>Moderate</Typography>
+                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>Moderate</Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Box sx={{ width: 12, height: 2, backgroundColor: '#ff6b6b' }} />
-                <Typography variant="caption" sx={{ color: '#aaa', fontSize: '0.7rem' }}>Highest</Typography>
+                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>Highest</Typography>
               </Box>
             </>
           )}
@@ -456,7 +456,7 @@ export default function OrbitalSplittingDiagram({
         <Typography 
           variant="body2" 
           sx={{ 
-            color: '#aaa',
+            color: isDarkMode ? '#aaa' : '#666',
             fontSize: { xs: '0.8rem', sm: '0.9rem' }
           }}
         >
@@ -465,7 +465,7 @@ export default function OrbitalSplittingDiagram({
         <Typography 
           variant="caption" 
           sx={{ 
-            color: '#666', 
+            color: isDarkMode ? '#666' : '#999', 
             display: 'block', 
             mt: 0.5,
             fontSize: { xs: '0.7rem', sm: '0.8rem' }

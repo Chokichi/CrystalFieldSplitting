@@ -74,7 +74,7 @@ export default function OrbitalControls({
         }}
       >
         <AccordionSummary 
-          expandIcon={<ExpandMoreIcon sx={{ color: '#90caf9' }} />}
+          expandIcon={<ExpandMoreIcon sx={{ color: isDarkMode ? '#90caf9' : '#1976d2' }} />}
           sx={{ 
             '& .MuiAccordionSummary-content': { 
               alignItems: 'center',
@@ -82,14 +82,14 @@ export default function OrbitalControls({
             }
           }}
         >
-          <Typography variant="body2" sx={{ color: '#90caf9', fontWeight: 'bold' }}>
+          <Typography variant="body2" sx={{ color: isDarkMode ? '#90caf9' : '#1976d2', fontWeight: 'bold' }}>
             Individual Orbital Controls
           </Typography>
           <Chip 
             label={`${Object.values(orbitalStates).filter(Boolean).length}/5 visible`}
             size="small"
             sx={{ 
-              backgroundColor: '#90caf9',
+              backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
               color: 'white',
               fontSize: '0.7rem'
             }}
@@ -118,7 +118,7 @@ export default function OrbitalControls({
                   <Typography 
                     variant="body2" 
                     sx={{ 
-                      color: 'white',
+                      color: isDarkMode ? 'white' : '#212121',
                       fontWeight: 'bold',
                       fontSize: { xs: '0.8rem', sm: '0.9rem' }
                     }}
@@ -150,7 +150,7 @@ export default function OrbitalControls({
               <Typography 
                 variant="caption" 
                 sx={{ 
-                  color: '#aaa',
+                  color: isDarkMode ? '#aaa' : '#666',
                   fontSize: { xs: '0.7rem', sm: '0.8rem' },
                   display: 'block',
                   mb: 1
@@ -165,7 +165,7 @@ export default function OrbitalControls({
                   <Typography 
                     variant="caption" 
                     sx={{ 
-                      color: '#aaa',
+                      color: isDarkMode ? '#aaa' : '#666',
                       fontSize: { xs: '0.7rem', sm: '0.8rem' }
                     }}
                   >
@@ -187,7 +187,7 @@ export default function OrbitalControls({
                         backgroundColor: info.color,
                       },
                       '& .MuiSlider-rail': {
-                        backgroundColor: '#444',
+                        backgroundColor: isDarkMode ? '#444' : '#ddd',
                       },
                     }}
                   />

@@ -146,6 +146,7 @@ function App() {
                 ligandColor={selectedLigand.color}
                 orbitalStates={orbitalStates}
                 orbitalScales={orbitalScales}
+                isDarkMode={isDarkMode}
               />
               
               <OrbitControls 

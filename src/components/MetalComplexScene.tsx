@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, Box } from '@react-three/drei';
+import { Sphere, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { ParametricGeometry } from 'three/examples/jsm/geometries/ParametricGeometry.js';
 
@@ -183,13 +183,160 @@ function getSquarePlanarPositions(distance) {
   ];
 }
 
+// Billboard text component that always faces the camera while maintaining upright orientation
+function BillboardText({ position, children, isDarkMode, ...props }) {
+  const textRef = useRef<any>(null);
+  
+  useFrame(({ camera }) => {
+    if (!textRef.current || !position) return;
+    
+    // drei Text component - try to access the mesh or group
+    const obj = textRef.current;
+    
+    // Get the actual mesh - drei Text might be a group or directly a mesh
+    let mesh: any = null;
+    if (obj instanceof THREE.Group && obj.children.length > 0) {
+      // It's a group, get the first child (should be a mesh)
+      mesh = obj.children[0];
+    } else if (obj instanceof THREE.Mesh || obj instanceof THREE.Object3D) {
+      // It's directly a mesh or Object3D
+      mesh = obj;
+    }
+    
+    if (!mesh || !(mesh instanceof THREE.Object3D)) return;
+    
+    // Get text world position
+    const posArray = Array.isArray(position) ? position : [position.x || position[0], position.y || position[1], position.z || position[2]];
+    const textWorldPos = new THREE.Vector3(posArray[0], posArray[1], posArray[2]);
+    
+    // Get camera position
+    const cameraPos = camera.position.clone();
+    
+    // Project camera position onto horizontal plane (XY plane, since Z is up)
+    // This keeps the text upright by only rotating in the horizontal plane
+    const lookAtTarget = new THREE.Vector3(
+      cameraPos.x,
+      cameraPos.y,
+      textWorldPos.z // Same Z as text position - keeps text upright
+    );
+    
+    // Calculate direction vector for horizontal rotation
+    const direction = lookAtTarget.clone().sub(textWorldPos);
+    if (direction.length() > 0) {
+      direction.normalize();
+      const horizontalAngle = Math.atan2(direction.y, direction.x);
+      
+      // Set rotation to keep text upright:
+      // drei Text uses Y-up by default, rotate to Z-up coordinate system
+      // -Math.PI / 2 keeps text visible but upside down
+      // Solution: Use scale to flip vertically while keeping the rotation that makes it visible
+      mesh.rotation.set(
+        -Math.PI / 2, // Keep this value (makes text visible)
+        horizontalAngle, // Face camera horizontally
+        0  // No roll - keep upright
+      );
+      // Flip text vertically using scale to make it right-side up
+      mesh.scale.set(1, -1, 1); // Negative Y scale flips text vertically
+    }
+  });
+  
+  return (
+    <Text
+      ref={textRef}
+      position={position}
+      fontSize={0.5}
+      anchorX="center"
+      anchorY="middle"
+      outlineWidth={0.05}
+      outlineColor={isDarkMode ? '#000000' : '#ffffff'}
+      {...props}
+    >
+      {children}
+    </Text>
+  );
+}
+
+// Axis labels component
+function AxisLabels({ maxDistance, isDarkMode = true }) {
+  // Position labels beyond the maximum ligand distance
+  const labelOffset = Math.max(4.5, maxDistance * 1.3);
+  const axisColor = isDarkMode ? '#ffffff' : '#000000';
+  const lineColor = isDarkMode ? '#888888' : '#cccccc';
+  const lineLength = labelOffset * 0.8;
+  
+  return (
+    <group>
+      {/* X-axis label and line */}
+      <BillboardText
+        position={[labelOffset + 0.5, 0, 0]}
+        color={axisColor}
+        isDarkMode={isDarkMode}
+      >
+        X
+      </BillboardText>
+      <line>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={2}
+            array={new Float32Array([0, 0, 0, lineLength, 0, 0])}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color={lineColor} opacity={0.6} transparent />
+      </line>
+      
+      {/* Y-axis label and line */}
+      <BillboardText
+        position={[0, labelOffset + 0.5, 0]}
+        color={axisColor}
+        isDarkMode={isDarkMode}
+      >
+        Y
+      </BillboardText>
+      <line>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={2}
+            array={new Float32Array([0, 0, 0, 0, lineLength, 0])}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color={lineColor} opacity={0.6} transparent />
+      </line>
+      
+      {/* Z-axis label and line */}
+      <BillboardText
+        position={[0, 0, labelOffset + 0.5]}
+        color={axisColor}
+        isDarkMode={isDarkMode}
+      >
+        Z
+      </BillboardText>
+      <line>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={2}
+            array={new Float32Array([0, 0, 0, 0, 0, lineLength])}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color={lineColor} opacity={0.6} transparent />
+      </line>
+    </group>
+  );
+}
+
 export default function MetalComplexScene({ 
   geometryType, 
   distance, 
   showOrbitals, 
   ligandColor,
   orbitalStates,
-  orbitalScales
+  orbitalScales,
+  isDarkMode = true
 }) {
   const ligandPositions = useMemo(() => {
     if (geometryType === 'octahedral') {
@@ -240,6 +387,9 @@ export default function MetalComplexScene({
           <lineBasicMaterial color="#666" opacity={0.5} transparent />
         </line>
       ))}
+      
+      {/* Axis labels and lines */}
+      <AxisLabels maxDistance={distance} isDarkMode={isDarkMode} />
     </group>
   );
 }

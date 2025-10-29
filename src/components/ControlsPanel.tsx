@@ -62,25 +62,25 @@ export default function ControlsPanel({
             label="Geometry"
             onChange={(e) => setGeometryType(e.target.value)}
             sx={{
-              color: 'white',
+              color: isDarkMode ? 'white' : '#212121',
               '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#555',
+                borderColor: isDarkMode ? '#555' : '#ccc',
               },
               '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#777',
+                borderColor: isDarkMode ? '#777' : '#999',
               },
               '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#90caf9',
+                borderColor: isDarkMode ? '#90caf9' : '#1976d2',
               },
             }}
           >
-            <MenuItem value="octahedral">Octahedral (Oh)</MenuItem>
-            <MenuItem value="squarePlanar">Square Planar (D4h)</MenuItem>
+            <MenuItem value="octahedral" sx={{ color: isDarkMode ? 'white' : '#212121' }}>Octahedral (Oh)</MenuItem>
+            <MenuItem value="squarePlanar" sx={{ color: isDarkMode ? 'white' : '#212121' }}>Square Planar (D4h)</MenuItem>
           </Select>
         </FormControl>
       </Box>
 
-      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: '#333' }} />
+      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
 
       {/* Distance Slider */}
       <Box sx={{ mb: { xs: 2, sm: 3 } }}>
@@ -88,7 +88,7 @@ export default function ControlsPanel({
           variant="body2" 
           sx={{ 
             mb: 1, 
-            color: '#aaa',
+            color: isDarkMode ? '#aaa' : '#666',
             fontSize: { xs: '0.8rem', sm: '0.9rem' }
           }}
         >
@@ -101,15 +101,15 @@ export default function ControlsPanel({
           max={4.0}
           step={0.1}
           sx={{
-            color: '#90caf9',
+            color: isDarkMode ? '#90caf9' : '#1976d2',
             '& .MuiSlider-thumb': {
-              backgroundColor: '#90caf9',
+              backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
             },
             '& .MuiSlider-track': {
-              backgroundColor: '#90caf9',
+              backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
             },
             '& .MuiSlider-rail': {
-              backgroundColor: '#444',
+              backgroundColor: isDarkMode ? '#444' : '#ddd',
             },
           }}
         />
@@ -117,7 +117,7 @@ export default function ControlsPanel({
           <Typography 
             variant="caption" 
             sx={{ 
-              color: '#666',
+              color: isDarkMode ? '#666' : '#999',
               fontSize: { xs: '0.7rem', sm: '0.8rem' }
             }}
           >
@@ -126,7 +126,7 @@ export default function ControlsPanel({
           <Typography 
             variant="caption" 
             sx={{ 
-              color: '#666',
+              color: isDarkMode ? '#666' : '#999',
               fontSize: { xs: '0.7rem', sm: '0.8rem' }
             }}
           >
@@ -135,7 +135,7 @@ export default function ControlsPanel({
         </Box>
       </Box>
 
-      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: '#333' }} />
+      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
 
       {/* Ligand Selection */}
       <Box sx={{ mb: { xs: 2, sm: 3 } }}>
@@ -143,33 +143,33 @@ export default function ControlsPanel({
           variant="body2" 
           sx={{ 
             mb: 1, 
-            color: '#aaa',
+            color: isDarkMode ? '#aaa' : '#666',
             fontSize: { xs: '0.8rem', sm: '0.9rem' }
           }}
         >
           Ligand Field Strength
         </Typography>
         <FormControl fullWidth size="small">
-          <InputLabel sx={{ color: '#aaa' }}>Ligand</InputLabel>
+          <InputLabel sx={{ color: isDarkMode ? '#aaa' : '#666' }}>Ligand</InputLabel>
           <Select
             value={ligandStrength}
             label="Ligand"
             onChange={(e) => setLigandStrength(Number(e.target.value))}
             sx={{
-              color: 'white',
+              color: isDarkMode ? 'white' : '#212121',
               '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#555',
+                borderColor: isDarkMode ? '#555' : '#ccc',
               },
               '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#777',
+                borderColor: isDarkMode ? '#777' : '#999',
               },
               '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#90caf9',
+                borderColor: isDarkMode ? '#90caf9' : '#1976d2',
               },
             }}
           >
             {ligands.map((ligand) => (
-              <MenuItem key={ligand.strength} value={ligand.strength}>
+              <MenuItem key={ligand.strength} value={ligand.strength} sx={{ color: isDarkMode ? 'white' : '#212121' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box
                     sx={{
@@ -179,7 +179,7 @@ export default function ControlsPanel({
                       backgroundColor: ligand.color,
                     }}
                   />
-                  <Typography sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem' } }}>
+                  <Typography sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem' }, color: isDarkMode ? 'white' : '#212121' }}>
                     {ligand.name} (strength: {ligand.strength})
                   </Typography>
                 </Box>
@@ -203,7 +203,7 @@ export default function ControlsPanel({
         </Box>
       </Box>
 
-      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: '#333' }} />
+      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
 
       {/* Orbital Toggle */}
       <Box sx={{ mb: { xs: 1, sm: 2 } }}>
@@ -214,10 +214,10 @@ export default function ControlsPanel({
               onChange={(e) => setShowOrbitals(e.target.checked)}
               sx={{
                 '& .MuiSwitch-switchBase.Mui-checked': {
-                  color: '#90caf9',
+                  color: isDarkMode ? '#90caf9' : '#1976d2',
                 },
                 '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                  backgroundColor: '#90caf9',
+                  backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
                 },
               }}
             />
@@ -226,7 +226,7 @@ export default function ControlsPanel({
             <Typography 
               variant="body2" 
               sx={{ 
-                color: '#aaa',
+                color: isDarkMode ? '#aaa' : '#666',
                 fontSize: { xs: '0.8rem', sm: '0.9rem' }
               }}
             >
@@ -236,7 +236,7 @@ export default function ControlsPanel({
         />
       </Box>
 
-      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: '#333' }} />
+      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
 
       {/* Theme Toggle */}
       <Box sx={{ mb: { xs: 1, sm: 2 } }}>
@@ -259,7 +259,7 @@ export default function ControlsPanel({
             <Typography 
               variant="body2" 
               sx={{ 
-                color: '#aaa',
+                color: isDarkMode ? '#aaa' : '#666',
                 fontSize: { xs: '0.8rem', sm: '0.9rem' }
               }}
             >
@@ -284,10 +284,10 @@ export default function ControlsPanel({
             border: '1px solid rgba(144, 202, 249, 0.3)'
           }}
         >
-          <Typography variant="caption" sx={{ color: '#90caf9', fontWeight: 'bold' }}>
+          <Typography variant="caption" sx={{ color: isDarkMode ? '#90caf9' : '#1976d2', fontWeight: 'bold' }}>
             💡 Tip:
           </Typography>
-          <Typography variant="caption" sx={{ color: '#aaa', display: 'block', mt: 0.5 }}>
+          <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', display: 'block', mt: 0.5 }}>
             {geometryType === 'octahedral' 
               ? 'In octahedral complexes, dz² and dx²-y² orbitals point directly at ligands and are destabilized.'
               : 'In square planar complexes, dx²-y² orbital has the highest energy as it points directly at the four ligands.'
