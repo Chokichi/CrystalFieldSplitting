@@ -184,7 +184,7 @@ function getSquarePlanarPositions(distance) {
 }
 
 // Billboard text component that always faces the camera while maintaining upright orientation
-function BillboardText({ position, children, isDarkMode, ...props }) {
+function BillboardText({ position, children, isDarkMode, fontSize = 0.5, ...props }) {
   const textRef = useRef<any>(null);
   
   useFrame(({ camera }) => {
@@ -244,7 +244,7 @@ function BillboardText({ position, children, isDarkMode, ...props }) {
     <Text
       ref={textRef}
       position={position}
-      fontSize={0.5}
+      fontSize={fontSize}
       anchorX="center"
       anchorY="middle"
       outlineWidth={0.05}
@@ -259,10 +259,14 @@ function BillboardText({ position, children, isDarkMode, ...props }) {
 // Axis labels component
 function AxisLabels({ maxDistance, isDarkMode = true }) {
   // Position labels beyond the maximum ligand distance
-  const labelOffset = Math.max(4.5, maxDistance * 1.3);
+  // Adjust scale factor for better visibility at different distances
+  const labelOffset = Math.max(1.0, maxDistance * 1.5);
   const axisColor = isDarkMode ? '#ffffff' : '#000000';
   const lineColor = isDarkMode ? '#888888' : '#cccccc';
   const lineLength = labelOffset * 0.8;
+  
+  // Scale font size based on distance to maintain readability
+  const fontSize = 0.3 + (maxDistance / 12); // Scale from 0.3 to ~0.6 as distance increases
   
   return (
     <group>
@@ -271,6 +275,7 @@ function AxisLabels({ maxDistance, isDarkMode = true }) {
         position={[labelOffset + 0.5, 0, 0]}
         color={axisColor}
         isDarkMode={isDarkMode}
+        fontSize={fontSize}
       >
         X
       </BillboardText>
@@ -291,6 +296,7 @@ function AxisLabels({ maxDistance, isDarkMode = true }) {
         position={[0, labelOffset + 0.5, 0]}
         color={axisColor}
         isDarkMode={isDarkMode}
+        fontSize={fontSize}
       >
         Y
       </BillboardText>
@@ -311,6 +317,7 @@ function AxisLabels({ maxDistance, isDarkMode = true }) {
         position={[0, 0, labelOffset + 0.5]}
         color={axisColor}
         isDarkMode={isDarkMode}
+        fontSize={fontSize}
       >
         Z
       </BillboardText>
