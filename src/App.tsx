@@ -3,7 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { Box, Grid, Paper } from '@mui/material';
+import { Box, Grid, Paper, Chip } from '@mui/material';
 import MetalComplexScene from './components/MetalComplexScene';
 import OrbitalSplittingDiagram from './components/OrbitalSplittingDiagram';
 import ControlsPanel from './components/ControlsPanel';
@@ -119,6 +119,60 @@ function App() {
               position: 'relative'
             }}
           >
+            {/* D-Orbital Chip Filters */}
+            {showOrbitals && (
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  display: 'flex',
+                  gap: 1,
+                  zIndex: 10,
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  maxWidth: '90%'
+                }}
+              >
+                {[
+                  { key: 'dxy', label: 'dxy', color: '#4fc3f7', darkBg: '#4fc3f7', lightBg: '#0288d1' },
+                  { key: 'dxz', label: 'dxz', color: '#66bb6a', darkBg: '#66bb6a', lightBg: '#388e3c' },
+                  { key: 'dyz', label: 'dyz', color: '#ef5350', darkBg: '#ef5350', lightBg: '#c62828' },
+                  { key: 'dz2', label: 'dz²', color: '#26c6da', darkBg: '#26c6da', lightBg: '#00838f' },
+                  { key: 'dx2y2', label: 'dx²-y²', color: '#ab47bc', darkBg: '#ab47bc', lightBg: '#7b1fa2' }
+                ].map((orbital) => (
+                  <Chip
+                    key={orbital.key}
+                    label={orbital.label}
+                    onClick={() => {
+                      setOrbitalStates(prev => ({
+                        ...prev,
+                        [orbital.key]: !prev[orbital.key]
+                      }));
+                    }}
+                    sx={{
+                      backgroundColor: orbitalStates[orbital.key]
+                        ? orbital.darkBg
+                        : (isDarkMode ? `${orbital.darkBg}33` : `${orbital.lightBg}33`),
+                      color: orbitalStates[orbital.key] ? 'white' : (isDarkMode ? orbital.darkBg : orbital.lightBg),
+                      border: orbitalStates[orbital.key]
+                        ? 'none'
+                        : `1px solid ${isDarkMode ? orbital.darkBg : orbital.lightBg}`,
+                      cursor: 'pointer',
+                      fontWeight: orbitalStates[orbital.key] ? 'bold' : 'normal',
+                      fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                      '&:hover': {
+                        backgroundColor: orbitalStates[orbital.key]
+                          ? orbital.darkBg
+                          : (isDarkMode ? `${orbital.darkBg}66` : `${orbital.lightBg}66`),
+                      }
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+            
             <Canvas
               camera={{ position: [5, 5, 5], fov: 50 }}
               style={{ 

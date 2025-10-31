@@ -63,7 +63,7 @@ function DOrbital({ type, position, rotation, color, opacity = 0.4, scale = 1 })
 // Central metal ion
 function MetalIon() {
   return (
-    <Sphere args={[0.3, 16, 16]} position={[0, 0, 0]}>
+    <Sphere args={[0.2, 16, 16]} position={[0, 0, 0]}>
       <meshPhongMaterial 
         color="#ffd700" 
         emissive="#ffaa00" 
@@ -92,7 +92,15 @@ function Ligand({ position, color }) {
 function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
   if (!showOrbitals) return null;
 
-  const orbitalColor = '#4fc3f7';
+  // Different colors for each orbital type
+  const orbitalColors = {
+    dxy: '#4fc3f7',   // Cyan
+    dxz: '#66bb6a',   // Green
+    dyz: '#ef5350',   // Red
+    dz2: '#26c6da',   // Light cyan
+    dx2y2: '#ab47bc'  // Purple
+  };
+  
   const opacity = Math.max(0.1, 0.4 - distance * 0.1);
   const baseScale = Math.max(0.5, 1.2 - distance * 0.2); // Base scale based on distance
 
@@ -104,7 +112,7 @@ function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
           type="dxy"
           position={[0, 0, 0]} 
           rotation={[0, 0, 0]} 
-          color={orbitalColor}
+          color={orbitalColors.dxy}
           opacity={opacity}
           scale={baseScale * orbitalScales.dxy}
         />
@@ -116,7 +124,7 @@ function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
           type="dxz"
           position={[0, 0, 0]} 
           rotation={[0, 0, 0]} 
-          color={orbitalColor}
+          color={orbitalColors.dxz}
           opacity={opacity}
           scale={baseScale * orbitalScales.dxz}
         />
@@ -128,7 +136,7 @@ function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
           type="dyz"
           position={[0, 0, 0]} 
           rotation={[0, 0, 0]} 
-          color={orbitalColor}
+          color={orbitalColors.dyz}
           opacity={opacity}
           scale={baseScale * orbitalScales.dyz}
         />
@@ -140,7 +148,7 @@ function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
           type="dz2"
           position={[0, 0, 0]} 
           rotation={[0, 0, 0]} 
-          color={orbitalColor}
+          color={orbitalColors.dz2}
           opacity={opacity}
           scale={baseScale * orbitalScales.dz2}
         />
@@ -152,7 +160,7 @@ function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
           type="dx2y2"
           position={[0, 0, 0]} 
           rotation={[0, 0, 0]} 
-          color={orbitalColor}
+          color={orbitalColors.dx2y2}
           opacity={opacity}
           scale={baseScale * orbitalScales.dx2y2}
         />
