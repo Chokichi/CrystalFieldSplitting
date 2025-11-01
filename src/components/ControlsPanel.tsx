@@ -11,8 +11,12 @@ import {
   FormControlLabel,
   Paper,
   Chip,
-  Divider
+  Divider,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { motion } from 'framer-motion';
 
 export default function ControlsPanel({
@@ -22,8 +26,6 @@ export default function ControlsPanel({
   setDistance,
   ligandStrength,
   setLigandStrength,
-  showOrbitals,
-  setShowOrbitals,
   ligands,
   isDarkMode,
   setIsDarkMode
@@ -41,18 +43,30 @@ export default function ControlsPanel({
         border: isDarkMode ? '1px solid #333' : '1px solid #e0e0e0'
       }}
     >
-      <Typography 
-        variant="h6" 
+      <Accordion 
+        defaultExpanded 
         sx={{ 
-          mb: { xs: 1, sm: 2 }, 
-          color: isDarkMode ? '#90caf9' : '#1976d2', 
-          fontWeight: 'bold',
-          fontSize: { xs: '1rem', sm: '1.25rem' }
+          background: 'transparent',
+          boxShadow: 'none',
+          '&:before': { display: 'none' }
         }}
       >
-        Controls
-      </Typography>
-
+        <AccordionSummary 
+          expandIcon={<ExpandMoreIcon sx={{ color: isDarkMode ? '#90caf9' : '#1976d2' }} />}
+        >
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: isDarkMode ? '#90caf9' : '#1976d2', 
+              fontWeight: 'bold',
+              fontSize: { xs: '1rem', sm: '1.25rem' }
+            }}
+          >
+            Controls
+          </Typography>
+        </AccordionSummary>
+        
+        <AccordionDetails sx={{ pt: 1 }}>
       {/* Geometry Selection */}
       <Box sx={{ mb: { xs: 2, sm: 3 } }}>
         <FormControl fullWidth size="small">
@@ -75,6 +89,7 @@ export default function ControlsPanel({
             }}
           >
             <MenuItem value="octahedral" sx={{ color: isDarkMode ? 'white' : '#212121' }}>Octahedral (Oh)</MenuItem>
+            <MenuItem value="tetrahedral" sx={{ color: isDarkMode ? 'white' : '#212121' }}>Tetrahedral (Td)</MenuItem>
             <MenuItem value="squarePlanar" sx={{ color: isDarkMode ? 'white' : '#212121' }}>Square Planar (D4h)</MenuItem>
           </Select>
         </FormControl>
@@ -205,39 +220,6 @@ export default function ControlsPanel({
 
       <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
 
-      {/* Orbital Toggle */}
-      <Box sx={{ mb: { xs: 1, sm: 2 } }}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={showOrbitals}
-              onChange={(e) => setShowOrbitals(e.target.checked)}
-              sx={{
-                '& .MuiSwitch-switchBase.Mui-checked': {
-                  color: isDarkMode ? '#90caf9' : '#1976d2',
-                },
-                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                  backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
-                },
-              }}
-            />
-          }
-          label={
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: isDarkMode ? '#aaa' : '#666',
-                fontSize: { xs: '0.8rem', sm: '0.9rem' }
-              }}
-            >
-              Show d-orbital lobes
-            </Typography>
-          }
-        />
-      </Box>
-
-      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
-
       {/* Theme Toggle */}
       <Box sx={{ mb: { xs: 1, sm: 2 } }}>
         <FormControlLabel
@@ -290,11 +272,15 @@ export default function ControlsPanel({
           <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', display: 'block', mt: 0.5 }}>
             {geometryType === 'octahedral' 
               ? 'In octahedral complexes, dz² and dx²-y² orbitals point directly at ligands and are destabilized.'
+              : geometryType === 'tetrahedral'
+              ? 'In tetrahedral complexes, t₂ orbitals (dxy, dxz, dyz) are destabilized more than e orbitals (dz², dx²-y²) due to their orientation.'
               : 'In square planar complexes, dx²-y² orbital has the highest energy as it points directly at the four ligands.'
             }
           </Typography>
         </Paper>
       </motion.div>
+        </AccordionDetails>
+      </Accordion>
     </Paper>
   );
 }

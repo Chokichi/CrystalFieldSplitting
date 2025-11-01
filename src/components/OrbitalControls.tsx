@@ -2,9 +2,7 @@ import React from 'react';
 import {
   Box,
   Typography,
-  Switch,
   Slider,
-  FormControlLabel,
   Paper,
   Accordion,
   AccordionSummary,
@@ -14,11 +12,11 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const orbitalInfo = {
-  dz2: { name: 'dz²', description: 'Two lobes along z-axis with torus in xy-plane', color: '#4fc3f7' },
-  dx2y2: { name: 'dx²-y²', description: 'Four lobes in xy-plane along x and y axes', color: '#ff6b6b' },
-  dxy: { name: 'dxy', description: 'Four lobes in xy-plane rotated 45°', color: '#4fc3f7' },
-  dxz: { name: 'dxz', description: 'Lobes in xz-plane', color: '#4fc3f7' },
-  dyz: { name: 'dyz', description: 'Lobes in yz-plane', color: '#4fc3f7' }
+  dz2: { name: 'dz²', color: '#4fc3f7' },
+  dx2y2: { name: 'dx²-y²', color: '#ff6b6b' },
+  dxy: { name: 'dxy', color: '#4fc3f7' },
+  dxz: { name: 'dxz', color: '#4fc3f7' },
+  dyz: { name: 'dyz', color: '#4fc3f7' }
 };
 
 export default function OrbitalControls({
@@ -28,13 +26,6 @@ export default function OrbitalControls({
   setOrbitalScales,
   isDarkMode = true
 }) {
-  const handleOrbitalToggle = (orbitalType) => {
-    setOrbitalStates(prev => ({
-      ...prev,
-      [orbitalType]: !prev[orbitalType]
-    }));
-  };
-
   const handleScaleChange = (orbitalType, value) => {
     setOrbitalScales(prev => ({
       ...prev,
@@ -46,7 +37,7 @@ export default function OrbitalControls({
     <Paper 
       elevation={2} 
       sx={{ 
-        p: 2,
+        p: 1.5,
         background: isDarkMode 
           ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)'
           : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
@@ -56,10 +47,10 @@ export default function OrbitalControls({
       <Typography 
         variant="h6" 
         sx={{ 
-          mb: 2, 
+          mb: 1, 
           color: isDarkMode ? '#90caf9' : '#1976d2', 
           fontWeight: 'bold',
-          fontSize: { xs: '1rem', sm: '1.25rem' }
+          fontSize: { xs: '0.9rem', sm: '1.1rem' }
         }}
       >
         D-Orbital Controls
@@ -75,131 +66,92 @@ export default function OrbitalControls({
       >
         <AccordionSummary 
           expandIcon={<ExpandMoreIcon sx={{ color: isDarkMode ? '#90caf9' : '#1976d2' }} />}
-          sx={{ 
-            '& .MuiAccordionSummary-content': { 
-              alignItems: 'center',
-              gap: 1
-            }
-          }}
         >
           <Typography variant="body2" sx={{ color: isDarkMode ? '#90caf9' : '#1976d2', fontWeight: 'bold' }}>
-            Individual Orbital Controls
+            Orbital Scales
           </Typography>
-          <Chip 
-            label={`${Object.values(orbitalStates).filter(Boolean).length}/5 visible`}
-            size="small"
-            sx={{ 
-              backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
-              color: 'white',
-              fontSize: '0.7rem'
-            }}
-          />
         </AccordionSummary>
         
-        <AccordionDetails sx={{ pt: 1 }}>
+        <AccordionDetails sx={{ pt: 0.5 }}>
           {Object.entries(orbitalInfo).map(([orbitalType, info]) => (
-            <Box key={orbitalType} sx={{ mb: 3 }}>
-              {/* Orbital Header */}
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between',
-                mb: 1
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box
-                    sx={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: '50%',
-                      backgroundColor: info.color,
-                    }}
-                  />
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      color: isDarkMode ? 'white' : '#212121',
-                      fontWeight: 'bold',
-                      fontSize: { xs: '0.8rem', sm: '0.9rem' }
-                    }}
-                  >
-                    {info.name}
-                  </Typography>
-                </Box>
-                
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={orbitalStates[orbitalType]}
-                      onChange={() => handleOrbitalToggle(orbitalType)}
-                      sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': {
-                          color: info.color,
-                        },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                          backgroundColor: info.color,
-                        },
-                      }}
-                    />
-                  }
-                  label=""
+            <Box 
+              key={orbitalType} 
+              sx={{ 
+                mb: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5
+              }}
+            >
+              {/* Orbital Name */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: '50px' }}>
+                <Box
+                  sx={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    backgroundColor: info.color,
+                  }}
                 />
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    color: isDarkMode ? 'white' : '#212121',
+                    fontWeight: 'bold',
+                    fontSize: { xs: '0.75rem', sm: '0.8rem' }
+                  }}
+                >
+                  {info.name}
+                </Typography>
               </Box>
 
-              {/* Orbital Description */}
+              {/* Scale Value */}
               <Typography 
                 variant="caption" 
                 sx={{ 
                   color: isDarkMode ? '#aaa' : '#666',
-                  fontSize: { xs: '0.7rem', sm: '0.8rem' },
-                  display: 'block',
-                  mb: 1
+                  fontSize: '0.7rem',
+                  minWidth: '45px',
+                  textAlign: 'right'
                 }}
               >
-                {info.description}
+                {orbitalScales[orbitalType].toFixed(1)}
               </Typography>
 
               {/* Scale Slider */}
-              {orbitalStates[orbitalType] && (
-                <Box sx={{ pl: 1 }}>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      color: isDarkMode ? '#aaa' : '#666',
-                      fontSize: { xs: '0.7rem', sm: '0.8rem' }
-                    }}
-                  >
-                    Scale: {orbitalScales[orbitalType].toFixed(1)}
-                  </Typography>
-                  <Slider
-                    value={orbitalScales[orbitalType]}
-                    onChange={(e, value) => handleScaleChange(orbitalType, value)}
-                    min={0.2}
-                    max={2.0}
-                    step={0.1}
-                    size="small"
-                    sx={{
-                      color: info.color,
-                      '& .MuiSlider-thumb': {
-                        backgroundColor: info.color,
-                      },
-                      '& .MuiSlider-track': {
-                        backgroundColor: info.color,
-                      },
-                      '& .MuiSlider-rail': {
-                        backgroundColor: isDarkMode ? '#444' : '#ddd',
-                      },
-                    }}
-                  />
-                </Box>
-              )}
+              <Slider
+                value={orbitalScales[orbitalType]}
+                onChange={(e, value) => handleScaleChange(orbitalType, value)}
+                min={0.2}
+                max={2.0}
+                step={0.1}
+                size="small"
+                sx={{
+                  flex: 1,
+                  color: info.color,
+                  height: 4,
+                  '& .MuiSlider-thumb': {
+                    backgroundColor: info.color,
+                    width: 12,
+                    height: 12,
+                  },
+                  '& .MuiSlider-track': {
+                    backgroundColor: info.color,
+                    height: 2,
+                  },
+                  '& .MuiSlider-rail': {
+                    backgroundColor: isDarkMode ? '#444' : '#ddd',
+                    height: 2,
+                  },
+                }}
+              />
             </Box>
           ))}
         </AccordionDetails>
       </Accordion>
 
       {/* Quick Actions */}
-      <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+      <Box sx={{ mt: 1.5, display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
         <Chip
           label="Show All"
           size="small"
@@ -213,7 +165,8 @@ export default function OrbitalControls({
           sx={{
             backgroundColor: '#4caf50',
             color: 'white',
-            fontSize: '0.7rem'
+            fontSize: '0.65rem',
+            height: 24
           }}
         />
         <Chip
@@ -229,7 +182,8 @@ export default function OrbitalControls({
           sx={{
             backgroundColor: '#f44336',
             color: 'white',
-            fontSize: '0.7rem'
+            fontSize: '0.65rem',
+            height: 24
           }}
         />
         <Chip
@@ -248,7 +202,8 @@ export default function OrbitalControls({
           sx={{
             backgroundColor: '#ff9800',
             color: 'white',
-            fontSize: '0.7rem'
+            fontSize: '0.65rem',
+            height: 24
           }}
         />
       </Box>

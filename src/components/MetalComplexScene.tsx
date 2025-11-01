@@ -5,8 +5,12 @@ import * as THREE from 'three';
 import { ParametricGeometry } from 'three/examples/jsm/geometries/ParametricGeometry.js';
 
 // Create d-orbital geometry using mathematical equations
-function makeDOrbitalGeometry(type, scale = 1, samples = 80) {
-  const func = (u, v, target) => {
+function makeDOrbitalGeometry(
+  type: 'dz2' | 'dx2y2' | 'dxy' | 'dxz' | 'dyz',
+  scale: number = 1,
+  samples: number = 80
+) {
+  const func = (u: number, v: number, target: THREE.Vector3) => {
     // Convert u,v to θ and φ
     const theta = Math.PI * u;      // 0 → π
     const phi = 2 * Math.PI * v;    // 0 → 2π
@@ -14,13 +18,13 @@ function makeDOrbitalGeometry(type, scale = 1, samples = 80) {
     let f = 0;
     switch (type) {
       case 'dz2':
-        f = 3 * Math.cos(theta)**2 - 1;
+        f = 3 * Math.cos(theta) ** 2 - 1;
         break;
       case 'dx2y2':
-        f = Math.sin(theta)**2 * Math.cos(2 * phi);
+        f = Math.sin(theta) ** 2 * Math.cos(2 * phi);
         break;
       case 'dxy':
-        f = Math.sin(theta)**2 * Math.sin(2 * phi);
+        f = Math.sin(theta) ** 2 * Math.sin(2 * phi);
         break;
       case 'dxz':
         f = Math.sin(2 * theta) * Math.cos(phi);
@@ -28,8 +32,12 @@ function makeDOrbitalGeometry(type, scale = 1, samples = 80) {
       case 'dyz':
         f = Math.sin(2 * theta) * Math.sin(phi);
         break;
+      default:
+        f = 0;
+        break;
     }
 
+    // Prevent singularities at the poles
     const r = Math.abs(f) * scale;
     const x = r * Math.sin(theta) * Math.cos(phi);
     const y = r * Math.sin(theta) * Math.sin(phi);
@@ -179,6 +187,21 @@ function getOctahedralPositions(distance) {
     [0, 0, distance],    // +z
     [0, 0, -distance],   // -z
   ];
+}
+
+// Tetrahedral ligand positions (4 vertices of a regular tetrahedron)
+function getTetrahedralPositions(distance) {
+  // Regular tetrahedron vertices - standard coordinates normalized to distance
+  // Using vertices: (1,1,1), (1,-1,-1), (-1,1,-1), (-1,-1,1)
+  // Normalize these to the desired distance
+  const scale = distance / Math.sqrt(3); // Normalize so distance from origin equals 'distance'
+  const positions = [
+    [scale, scale, scale],              // Vertex 1
+    [scale, -scale, -scale],            // Vertex 2
+    [-scale, scale, -scale],            // Vertex 3
+    [-scale, -scale, scale],            // Vertex 4
+  ];
+  return positions;
 }
 
 // Square planar ligand positions
@@ -356,6 +379,8 @@ export default function MetalComplexScene({
   const ligandPositions = useMemo(() => {
     if (geometryType === 'octahedral') {
       return getOctahedralPositions(distance);
+    } else if (geometryType === 'tetrahedral') {
+      return getTetrahedralPositions(distance);
     } else {
       return getSquarePlanarPositions(distance);
     }

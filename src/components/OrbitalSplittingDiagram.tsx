@@ -48,6 +48,23 @@ function calculateSplitting(geometry, distance, ligandStrength) {
     console.log(`   dxz, dyz: ${energies.dxz.toFixed(3)} (lower energy - least destabilized, point away from ligands)`);
     console.log(`   Δₛₚ: ${energies.splitting.toFixed(3)}`);
     return energies;
+  } else if (geometry === "tetrahedral") {
+    // Tetrahedral: t2 orbitals (dxy, dxz, dyz) are destabilized MORE than e orbitals (dz², dx²-y²)
+    // This is opposite to octahedral
+    // All orbitals are raised in energy, scaled by distance
+    const baseRise = base * distanceScaler * 0.7;  // Average energy increase for all orbitals
+    // In tetrahedral, t2 orbitals are higher energy than e orbitals
+    // The splitting is about 4/9 of octahedral for the same ligand
+    const energies = {
+      t2: baseRise + base * distanceScaler * 0.15,      // dxy, dxz, dyz (higher energy - more destabilized)
+      e: baseRise - base * distanceScaler * 0.15,       // dz², dx²-y² (lower energy - less destabilized)
+      splitting: base * distanceScaler * 0.3  // Δₜ ≈ 0.5Δₒ - smaller than octahedral (0.3 vs 0.6)
+    };
+    console.log(`🔺 Tetrahedral Energies:`, energies);
+    console.log(`   t₂ (dxy, dxz, dyz): ${energies.t2.toFixed(3)} (higher energy - more destabilized)`);
+    console.log(`   e (dz², dx²-y²): ${energies.e.toFixed(3)} (lower energy - still destabilized but less)`);
+    console.log(`   Δₜ: ${energies.splitting.toFixed(3)}`);
+    return energies;
   }
 }
 
@@ -276,6 +293,143 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
   );
 }
 
+// Tetrahedral energy diagram
+function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyValue = 3.0 }) {
+  return (
+    <Box sx={{ 
+      position: 'relative', 
+      height: '100%', 
+      width: '100%',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      {/* Ground state reference line */}
+      <Box
+        sx={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: '90%',
+          height: '2px',
+          background: isDarkMode ? '#888' : '#666',
+          opacity: 0.8,
+          borderStyle: 'dashed'
+        }}
+      />
+      
+      {/* Energy scale labels */}
+      <Box
+        sx={{
+          position: 'absolute',
+          left: '5px',
+          top: '5%',
+          color: isDarkMode ? '#888' : '#999',
+          fontSize: '0.7rem'
+        }}
+      >
+        Higher Energy
+      </Box>
+      <Box
+        sx={{
+          position: 'absolute',
+          left: '5px',
+          bottom: '1%',
+          color: isDarkMode ? '#888' : '#999',
+          fontSize: '0.7rem'
+        }}
+      >
+        Ground State
+      </Box>
+      
+      {/* Centered container for orbital bars */}
+      <Box sx={{ 
+        position: 'relative',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+        height: '100%'
+      }}>
+      {/* e orbitals (lower energy) - all at same energy level */}
+      <EnergyLevel 
+        label="dz²" 
+        energy={energies.e} 
+        color="#4fc3f7" 
+        geometry="tetrahedral"
+        orbitalType="e"
+        index={0}
+        totalOrbitals={5}
+        maxEnergyValue={maxEnergyValue}
+        isDarkMode={isDarkMode}
+      />
+      <EnergyLevel 
+        label="dx²-y²" 
+        energy={energies.e} 
+        color="#4fc3f7" 
+        geometry="tetrahedral"
+        orbitalType="e"
+        index={1}
+        totalOrbitals={5}
+        maxEnergyValue={maxEnergyValue}
+        isDarkMode={isDarkMode}
+      />
+      
+      {/* t2 orbitals (higher energy) - all at same energy level */}
+      <EnergyLevel 
+        label="dxy" 
+        energy={energies.t2} 
+        color="#ff6b6b" 
+        geometry="tetrahedral"
+        orbitalType="t2"
+        index={2}
+        totalOrbitals={5}
+        maxEnergyValue={maxEnergyValue}
+        isDarkMode={isDarkMode}
+      />
+      <EnergyLevel 
+        label="dxz" 
+        energy={energies.t2} 
+        color="#ff6b6b" 
+        geometry="tetrahedral"
+        orbitalType="t2"
+        index={3}
+        totalOrbitals={5}
+        maxEnergyValue={maxEnergyValue}
+        isDarkMode={isDarkMode}
+      />
+      <EnergyLevel 
+        label="dyz" 
+        energy={energies.t2} 
+        color="#ff6b6b" 
+        geometry="tetrahedral"
+        orbitalType="t2"
+        index={4}
+        totalOrbitals={5}
+        maxEnergyValue={maxEnergyValue}
+        isDarkMode={isDarkMode}
+      />
+      </Box>
+      
+      {/* Splitting indicator */}
+      <motion.div
+        animate={{ 
+          y: '50%',
+          height: Math.abs(energies.t2 - energies.e) * 25
+        }}
+        transition={{ duration: 0.5 }}
+        style={{
+          position: 'absolute',
+          right: '20px',
+          width: '4px',
+          background: 'linear-gradient(to top, #4fc3f7, #ff6b6b)',
+          borderRadius: '2px'
+        }}
+      />
+    </Box>
+  );
+}
+
 // Square planar energy diagram
 function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergyValue = 3.0 }) {
   return (
@@ -417,6 +571,8 @@ export default function OrbitalSplittingDiagram({
     // Get all energy values (excluding splitting)
     const energyValues = geometryType === 'octahedral' 
       ? [energies.eg, energies.t2g]
+      : geometryType === 'tetrahedral'
+      ? [energies.t2, energies.e]
       : [energies.dx2y2, energies.dxy, energies.dz2, energies.dxz, energies.dyz];
     
     // Find the maximum and minimum energy values
@@ -469,7 +625,7 @@ export default function OrbitalSplittingDiagram({
           fontSize: { xs: '0.8rem', sm: '0.9rem' }
         }}
       >
-        {geometryType === 'octahedral' ? 'Octahedral (Oh)' : 'Square Planar (D4h)'}
+        {geometryType === 'octahedral' ? 'Octahedral (Oh)' : geometryType === 'tetrahedral' ? 'Tetrahedral (Td)' : 'Square Planar (D4h)'}
       </Typography>
       
       <Box sx={{ 
@@ -480,6 +636,8 @@ export default function OrbitalSplittingDiagram({
       }}>
         {geometryType === 'octahedral' ? (
           <OctahedralDiagram energies={energies} splitting={energies.splitting} isDarkMode={isDarkMode} maxEnergyValue={maxEnergyValue} />
+        ) : geometryType === 'tetrahedral' ? (
+          <TetrahedralDiagram energies={energies} splitting={energies.splitting} isDarkMode={isDarkMode} maxEnergyValue={maxEnergyValue} />
         ) : (
           <SquarePlanarDiagram energies={energies} splitting={energies.splitting} isDarkMode={isDarkMode} maxEnergyValue={maxEnergyValue} />
         )}
@@ -508,6 +666,17 @@ export default function OrbitalSplittingDiagram({
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Box sx={{ width: 12, height: 2, backgroundColor: '#ff6b6b' }} />
                 <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>eg</Typography>
+              </Box>
+            </>
+          ) : geometryType === 'tetrahedral' ? (
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box sx={{ width: 12, height: 2, backgroundColor: '#4fc3f7' }} />
+                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>e</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Box sx={{ width: 12, height: 2, backgroundColor: '#ff6b6b' }} />
+                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>t₂</Typography>
               </Box>
             </>
           ) : (

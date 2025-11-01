@@ -258,8 +258,6 @@ function App() {
               setDistance={setDistance}
               ligandStrength={ligandStrength}
               setLigandStrength={setLigandStrength}
-              showOrbitals={showOrbitals}
-              setShowOrbitals={setShowOrbitals}
               ligands={ligands}
               isDarkMode={isDarkMode}
               setIsDarkMode={setIsDarkMode}
