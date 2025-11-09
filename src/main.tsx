@@ -1,31 +1,20 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
+import App from './App'
 import './App.css'
 
 declare global {
   interface Window {
-    __REACT_DEVTOOLS_GLOBAL_HOOK__?: any;
+    __REACT_DEVTOOLS_GLOBAL_HOOK__?: Record<string, unknown>;
   }
 }
 
 if (typeof window !== 'undefined') {
-  const hook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-  if (!hook || typeof hook !== 'object') {
-    window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
-      supportsFiber: true,
-      renderers: new Map(),
-      rendererInterfaces: new Map(),
-      onCommitFiberRoot() {},
-      onCommitFiberUnmount() {},
-      inject() { return 0; },
-      getFiberRoots() { return new Map(); },
-      onPostCommitFiberRoot() {},
-      onPostCommitFiberUnmount() {},
-      _renderers: new Map(),
-      _fiberRoots: new Map(),
-    };
+  if (!window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+    window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {};
   }
+  const hook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__!;
+  hook.isDisabled = true;
 }
 
 // Suppress React DevTools version compatibility warnings
