@@ -4,6 +4,30 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function () {
+        if (typeof window === "undefined") return;
+        var hook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+        if (!hook || typeof hook !== "object") {
+          window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+            supportsFiber: true,
+            renderers: new Map(),
+            rendererInterfaces: new Map(),
+            inject: function () {
+              return 0;
+            },
+            onCommitFiberRoot: function () {},
+            onCommitFiberUnmount: function () {},
+            getFiberRoots: function () {
+              return new Map();
+            },
+            sub: function () {
+              return function () {};
+            }
+          };
+        }
+      })();
+    </script>
     <title>Crystal Field Theory Visualizer</title>
   </head>
   <body>

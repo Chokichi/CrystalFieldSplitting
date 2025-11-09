@@ -3,27 +3,14 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './App.css'
 
-declare global {
-  interface Window {
-    __REACT_DEVTOOLS_GLOBAL_HOOK__?: any;
-  }
-}
-
-if (typeof window !== 'undefined') {
-  // React 19 can crash if DevTools injects incompatible hooks.
-  // Removing the hook entirely avoids the runtime failure in production builds.
-  delete window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-}
-
-// Suppress React DevTools version compatibility warnings
-if (process.env.NODE_ENV === 'development') {
-  const originalError = console.error;
+if (import.meta.env.DEV) {
+  const originalError = console.error
   console.error = (...args) => {
     if (typeof args[0] === 'string' && args[0].includes('Invalid argument not valid semver')) {
-      return; // Suppress this specific error
+      return
     }
-    originalError.apply(console, args);
-  };
+    originalError.apply(console, args)
+  }
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
