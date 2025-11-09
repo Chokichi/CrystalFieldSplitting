@@ -5,16 +5,14 @@ import './App.css'
 
 declare global {
   interface Window {
-    __REACT_DEVTOOLS_GLOBAL_HOOK__?: Record<string, unknown>;
+    __REACT_DEVTOOLS_GLOBAL_HOOK__?: any;
   }
 }
 
 if (typeof window !== 'undefined') {
-  if (!window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
-    window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {};
-  }
-  const hook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__!;
-  hook.isDisabled = true;
+  // React 19 can crash if DevTools injects incompatible hooks.
+  // Removing the hook entirely avoids the runtime failure in production builds.
+  delete window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
 }
 
 // Suppress React DevTools version compatibility warnings
