@@ -8,12 +8,12 @@ body {
   font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
   background-color: #121212;
   color: #ffffff;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 #root {
-  height: 100vh;
-  width: 100vw;
+  min-height: 100vh;
+  width: 100%;
 }
 
 /* Custom scrollbar for dark theme */

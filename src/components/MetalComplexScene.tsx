@@ -1,7 +1,8 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, Text } from '@react-three/drei';
-import * as THREE from 'three';
+import { Sphere } from '@react-three/drei/core/shapes';
+import { Text } from '@react-three/drei/core/Text';
+import { DoubleSide, Group, Mesh, Object3D, Vector3 } from 'three';
 import { ParametricGeometry } from 'three/examples/jsm/geometries/ParametricGeometry.js';
 
 // Create d-orbital geometry using mathematical equations
@@ -10,7 +11,7 @@ function makeDOrbitalGeometry(
   scale: number = 1,
   samples: number = 80
 ) {
-  const func = (u: number, v: number, target: THREE.Vector3) => {
+  const func = (u: number, v: number, target: Vector3) => {
     // Convert u,v to θ and φ
     const theta = Math.PI * u;      // 0 → π
     const phi = 2 * Math.PI * v;    // 0 → 2π
@@ -57,11 +58,11 @@ function DOrbital({ type, position, rotation, color, opacity = 0.4, scale = 1 })
   return (
     <mesh position={position} rotation={rotation}>
       <primitive object={geometry} />
-      <meshStandardMaterial 
-        color={color} 
-        transparent 
+      <meshStandardMaterial
+        color={color}
+        transparent
         opacity={opacity}
-        side={THREE.DoubleSide}
+        side={DoubleSide}
         wireframe={false}
       />
     </mesh>
@@ -226,26 +227,26 @@ function BillboardText({ position, children, isDarkMode, fontSize = 0.5, ...prop
     
     // Get the actual mesh - drei Text might be a group or directly a mesh
     let mesh: any = null;
-    if (obj instanceof THREE.Group && obj.children.length > 0) {
+    if (obj instanceof Group && obj.children.length > 0) {
       // It's a group, get the first child (should be a mesh)
       mesh = obj.children[0];
-    } else if (obj instanceof THREE.Mesh || obj instanceof THREE.Object3D) {
+    } else if (obj instanceof Mesh || obj instanceof Object3D) {
       // It's directly a mesh or Object3D
       mesh = obj;
     }
     
-    if (!mesh || !(mesh instanceof THREE.Object3D)) return;
+    if (!mesh || !(mesh instanceof Object3D)) return;
     
     // Get text world position
     const posArray = Array.isArray(position) ? position : [position.x || position[0], position.y || position[1], position.z || position[2]];
-    const textWorldPos = new THREE.Vector3(posArray[0], posArray[1], posArray[2]);
+    const textWorldPos = new Vector3(posArray[0], posArray[1], posArray[2]);
     
     // Get camera position
     const cameraPos = camera.position.clone();
     
     // Project camera position onto horizontal plane (XY plane, since Z is up)
     // This keeps the text upright by only rotating in the horizontal plane
-    const lookAtTarget = new THREE.Vector3(
+    const lookAtTarget = new Vector3(
       cameraPos.x,
       cameraPos.y,
       textWorldPos.z // Same Z as text position - keeps text upright

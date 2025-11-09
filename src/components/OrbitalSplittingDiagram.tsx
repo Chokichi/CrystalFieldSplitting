@@ -1,9 +1,38 @@
-import React, { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Box, Typography, Paper } from '@mui/material';
 
+type GeometryType = 'octahedral' | 'tetrahedral' | 'squarePlanar';
+
+type OctahedralEnergies = {
+  eg: number;
+  t2g: number;
+  splitting: number;
+};
+
+type TetrahedralEnergies = {
+  t2: number;
+  e: number;
+  splitting: number;
+};
+
+type SquarePlanarEnergies = {
+  dx2y2: number;
+  dxy: number;
+  dz2: number;
+  dxz: number;
+  dyz: number;
+  splitting: number;
+};
+
+type EnergyResult = OctahedralEnergies | TetrahedralEnergies | SquarePlanarEnergies;
+
 // Calculate crystal field splitting energies
-function calculateSplitting(geometry, distance, ligandStrength) {
+function calculateSplitting(
+  geometry: GeometryType,
+  distance: number,
+  ligandStrength: number
+): EnergyResult | undefined {
   // Normalize distance: 1.0 (close) to 4.0 (far) maps to 1.0 to 0.0156
   // Use inverse distance cubed for physics accuracy
   const distanceEffect = 1.0 / Math.pow(distance, 3);
@@ -68,55 +97,69 @@ function calculateSplitting(geometry, distance, ligandStrength) {
   }
 }
 
+type EnergyLevelProps = {
+  label: string;
+  energy: number;
+  color: string;
+  isActive?: boolean;
+  geometry: GeometryType;
+  orbitalType: string;
+  containerHeight?: number;
+  diagramWidth?: number;
+  index?: number;
+  totalOrbitals?: number;
+  minEnergyValue?: number;
+  energyScale?: number;
+  baselinePadding?: number;
+  isDarkMode?: boolean;
+  topPaddingPx?: number;
+  bottomPaddingPx?: number;
+};
+
 // Energy level component
-function EnergyLevel({ 
-  label, 
-  energy, 
-  color, 
+function EnergyLevel({
+  label,
+  energy,
+  color,
   isActive = true,
-  geometry,
+  geometry: _geometry,
   orbitalType,
-  containerHeight = 300,
-  index = 0, // For horizontal positioning
-  totalOrbitals = 5, // Total number of orbitals to space
-  maxEnergyValue = 3.0, // Maximum energy value for scaling (passed from parent)
-  isDarkMode = true
-}) {
-  // Calculate position as percentage from top (0-100%)
-  // Use the passed maxEnergyValue for proper scaling
-  // Normalize energy to 0-1 range, but ensure it's never negative
-  const normalizedEnergy = Math.max(0, energy) / maxEnergyValue; // Normalize to 0-1, positive values only
-  
-  // Position from 90% (ground) to 10% (top), using 80% of available height for energy levels
-  const yPosition = 90 - (normalizedEnergy * 80);
-  
-  // Cap the position to ensure orbitals stay within visible bounds (5% to 95%)
-  const cappedYPosition = Math.max(5, Math.min(95, yPosition));
-  
-  // Calculate horizontal positioning based on total number of orbitals
-  // Middle bar (index = Math.floor(totalOrbitals / 2)) should be centered
+  containerHeight: _containerHeight = 300,
+  diagramWidth = 360,
+  index = 0,
+  totalOrbitals = 5,
+  minEnergyValue = 0,
+  energyScale = 3.0,
+  baselinePadding = 0.2,
+  isDarkMode = true,
+  topPaddingPx: customTopPaddingPx,
+  bottomPaddingPx: customBottomPaddingPx
+}: EnergyLevelProps) {
+  const containerHeight = Math.max(_containerHeight, 80);
+  const shiftedEnergy = Math.max(0, energy - minEnergyValue);
+  const normalizedEnergy = Math.min(1, (shiftedEnergy + baselinePadding) / Math.max(energyScale, 0.001));
+
+  const topPaddingPx = customTopPaddingPx ?? Math.min(40, Math.max(16, containerHeight * 0.1));
+  const bottomPaddingPx = customBottomPaddingPx ?? Math.min(64, Math.max(24, containerHeight * 0.16));
+  const usableHeight = Math.max(containerHeight - topPaddingPx - bottomPaddingPx, 36);
+  const yPositionPx = topPaddingPx + (1 - normalizedEnergy) * usableHeight;
+  const cappedYPositionPx = Math.max(topPaddingPx, Math.min(topPaddingPx + usableHeight, yPositionPx));
+
   const middleIndex = Math.floor(totalOrbitals / 2);
-  const offsetFromCenter = (index - middleIndex);
-  
-  // Calculate spacing in pixels
-  // Use a fixed pixel spacing that works well visually
-  const spacingPx = 80; // Fixed pixel spacing between orbital centers
+  const offsetFromCenter = index - middleIndex;
+
+  const safeWidth = Math.max(diagramWidth, totalOrbitals * 48);
+  const rawSpacing = safeWidth / Math.max(totalOrbitals, 1);
+  const spacingPx = Math.max(36, Math.min(rawSpacing, 90));
   const horizontalOffsetPx = offsetFromCenter * spacingPx;
-  
-  // Log horizontal positioning for debugging
-  console.log(`📍 ${label} horizontalOffset=${horizontalOffsetPx}px, index=${index}, middleIndex=${middleIndex}, offsetFromCenter=${offsetFromCenter}`);
-  
-  // Log positioning calculations for debugging
-  console.log(`📍 EnergyLevel ${label}: energy=${energy.toFixed(3)}, maxEnergyValue=${maxEnergyValue}, normalized=${normalizedEnergy.toFixed(3)}, yPosition=${yPosition.toFixed(1)}%, cappedYPosition=${cappedYPosition.toFixed(1)}%`);
-  
-  // Bar width for the orbital bars (doubled for better visibility)
-  const barWidth = 50; // Width of each bar (increased from 2
-  
+
+  const barWidth = Math.max(30, Math.min(spacingPx * 0.6, 60));
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
-      animate={{ 
-        top: `${yPosition}%`,
+      animate={{
+        top: cappedYPositionPx,
         opacity: isActive ? 1 : 0.3 
       }}
       transition={{ duration: 0.5, ease: "easeOut" }}
@@ -128,28 +171,31 @@ function EnergyLevel({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        top: `${cappedYPosition}%`,
-        left: `calc(50% + ${horizontalOffsetPx}px)`, // Center all bars at 50% + pixel offset
-        transform: 'translateX(-50%) translateY(-50%)', // Center the bar on its position
+        top: cappedYPositionPx,
+        left: `calc(50% + ${horizontalOffsetPx}px)`,
+        transform: 'translate(-50%, -50%)',
         borderRadius: '2px',
         boxShadow: `0 0 8px ${color}40`
       }}
     >
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            color: isDarkMode ? 'white' : 'black', 
-            fontSize: { xs: '0.8rem', sm: '0.9rem' },
-            fontWeight: orbitalType === 'eg' || orbitalType === 'highest' ? 'bold' : 'normal',
-            textShadow: isDarkMode 
-              ? '1px 1px 2px rgba(0,0,0,0.8)' 
-              : '1px 1px 2px rgba(255,255,255,0.8)',
-            textAlign: 'center',
-            lineHeight: 1,
-            transform: 'rotate(-90deg)', // Rotate text vertically
-            whiteSpace: 'nowrap'
-          }}
-        >
+      <Typography 
+        variant="body2" 
+        sx={{ 
+          color: isDarkMode ? 'white' : 'black', 
+          fontSize: { xs: '0.8rem', sm: '0.9rem' },
+          fontWeight: orbitalType === 'eg' || orbitalType === 'highest' ? 'bold' : 'normal',
+          textShadow: isDarkMode 
+            ? '1px 1px 2px rgba(0,0,0,0.8)' 
+            : '1px 1px 2px rgba(255,255,255,0.8)',
+          textAlign: 'center',
+          lineHeight: 1,
+          transform: 'rotate(-90deg)',
+          whiteSpace: 'nowrap',
+          maxWidth: 56,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}
+      >
         {label}
       </Typography>
     </motion.div>
@@ -157,15 +203,53 @@ function EnergyLevel({
 }
 
 // Octahedral energy diagram
-function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyValue = 3.0 }) {
+type DiagramCommonProps = {
+  isDarkMode?: boolean;
+  diagramWidth: number;
+  diagramHeight: number;
+  minEnergyValue: number;
+  energyScale: number;
+  baselinePadding: number;
+  groundLineOffset?: string;
+};
+
+function OctahedralDiagram({
+  energies,
+  isDarkMode = true,
+  diagramWidth = 360,
+  diagramHeight = 300,
+  minEnergyValue = 0,
+  energyScale = 3.0,
+  baselinePadding = 0.2,
+  groundLineOffset = '6%'
+}: { energies: OctahedralEnergies } & DiagramCommonProps) {
+  const topPaddingPx = Math.min(44, Math.max(16, diagramHeight * 0.1));
+  const bottomPaddingPx = Math.min(72, Math.max(24, diagramHeight * 0.18));
+  const usableHeight = Math.max(diagramHeight - topPaddingPx - bottomPaddingPx, 60);
+  const groundLineOffsetPx =
+    typeof groundLineOffset === 'string'
+      ? Math.max(bottomPaddingPx - 20, 12)
+      : groundLineOffset;
+  const groundLabelBottomPx =
+    typeof groundLineOffsetPx === 'number'
+      ? Math.max(0, groundLineOffsetPx - 24)
+      : Math.max(0, bottomPaddingPx * 0.3);
+  const energyIndicatorHeight = Math.max(
+    24,
+    (Math.abs(energies.eg - energies.t2g) / Math.max(energyScale, 0.001)) * usableHeight
+  );
+  const indicatorBottom = Math.max(bottomPaddingPx - 20, 10);
+
   return (
     <Box sx={{ 
       position: 'relative', 
-      height: '100%', 
       width: '100%',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
+      height: '100%',
+      minHeight: 'inherit',
+      overflow: 'hidden',
+      paddingTop: `${topPaddingPx}px`,
+      paddingBottom: `${bottomPaddingPx}px`,
+      boxSizing: 'border-box'
     }}>
       {/* Ground state reference line */}
       <Box
@@ -173,7 +257,7 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
           position: 'absolute',
           left: 0,
           right: 0,
-          top: '90%',
+          bottom: groundLineOffsetPx,
           height: '2px',
           background: isDarkMode ? '#888' : '#666',
           opacity: 0.8,
@@ -186,7 +270,7 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
         sx={{
           position: 'absolute',
           left: '5px',
-          top: '5%',
+          top: `${Math.max(8, topPaddingPx / 3)}px`,
           color: isDarkMode ? '#888' : '#999',
           fontSize: '0.7rem'
         }}
@@ -197,7 +281,7 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
         sx={{
           position: 'absolute',
           left: '5px',
-          bottom: '1%',
+          bottom: `${groundLabelBottomPx}px`,
           color: isDarkMode ? '#888' : '#999',
           fontSize: '0.7rem'
         }}
@@ -207,7 +291,8 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
       
       {/* Centered container for orbital bars */}
       <Box sx={{ 
-        position: 'relative',
+        position: 'absolute',
+        inset: 0,
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -223,8 +308,14 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
         orbitalType="t2g"
         index={0}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       <EnergyLevel 
         label="dxz" 
@@ -234,8 +325,14 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
         orbitalType="t2g"
         index={1}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       <EnergyLevel 
         label="dyz" 
@@ -245,8 +342,14 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
         orbitalType="t2g"
         index={2}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       
       {/* eg orbitals (higher energy) - all at same energy level */}
@@ -258,8 +361,14 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
         orbitalType="eg"
         index={3}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       <EnergyLevel 
         label="dx²-y²" 
@@ -269,24 +378,31 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
         orbitalType="eg"
         index={4}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       </Box>
       
       {/* Splitting indicator */}
       <motion.div
         animate={{ 
-          y: '50%',
-          height: Math.abs(energies.eg - energies.t2g) * 25
+          height: energyIndicatorHeight
         }}
         transition={{ duration: 0.5 }}
         style={{
           position: 'absolute',
-          right: '20px',
+          right: '12px',
+          bottom: indicatorBottom,
           width: '4px',
           background: 'linear-gradient(to top, #4fc3f7, #ff6b6b)',
-          borderRadius: '2px'
+          borderRadius: '2px',
+          transformOrigin: 'bottom center'
         }}
       />
     </Box>
@@ -294,15 +410,43 @@ function OctahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyVa
 }
 
 // Tetrahedral energy diagram
-function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyValue = 3.0 }) {
+function TetrahedralDiagram({
+  energies,
+  isDarkMode = true,
+  diagramWidth = 360,
+  diagramHeight = 300,
+  minEnergyValue = 0,
+  energyScale = 3.0,
+  baselinePadding = 0.2,
+  groundLineOffset = '6%'
+}: { energies: TetrahedralEnergies } & DiagramCommonProps) {
+  const topPaddingPx = Math.min(44, Math.max(16, diagramHeight * 0.1));
+  const bottomPaddingPx = Math.min(72, Math.max(24, diagramHeight * 0.18));
+  const usableHeight = Math.max(diagramHeight - topPaddingPx - bottomPaddingPx, 60);
+  const groundLineOffsetPx =
+    typeof groundLineOffset === 'string'
+      ? Math.max(bottomPaddingPx - 20, 12)
+      : groundLineOffset;
+  const groundLabelBottomPx =
+    typeof groundLineOffsetPx === 'number'
+      ? Math.max(0, groundLineOffsetPx - 24)
+      : Math.max(0, bottomPaddingPx * 0.3);
+  const energyIndicatorHeight = Math.max(
+    24,
+    (Math.abs(energies.t2 - energies.e) / Math.max(energyScale, 0.001)) * usableHeight
+  );
+  const indicatorBottom = Math.max(bottomPaddingPx - 20, 10);
+
   return (
     <Box sx={{ 
       position: 'relative', 
-      height: '100%', 
       width: '100%',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
+      height: '100%',
+      minHeight: 'inherit',
+      overflow: 'hidden',
+      paddingTop: `${topPaddingPx}px`,
+      paddingBottom: `${bottomPaddingPx}px`,
+      boxSizing: 'border-box'
     }}>
       {/* Ground state reference line */}
       <Box
@@ -310,7 +454,7 @@ function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyV
           position: 'absolute',
           left: 0,
           right: 0,
-          top: '90%',
+          bottom: groundLineOffsetPx,
           height: '2px',
           background: isDarkMode ? '#888' : '#666',
           opacity: 0.8,
@@ -323,7 +467,7 @@ function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyV
         sx={{
           position: 'absolute',
           left: '5px',
-          top: '5%',
+          top: `${Math.max(8, topPaddingPx / 3)}px`,
           color: isDarkMode ? '#888' : '#999',
           fontSize: '0.7rem'
         }}
@@ -334,7 +478,7 @@ function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyV
         sx={{
           position: 'absolute',
           left: '5px',
-          bottom: '1%',
+          bottom: `${groundLabelBottomPx}px`,
           color: isDarkMode ? '#888' : '#999',
           fontSize: '0.7rem'
         }}
@@ -344,7 +488,8 @@ function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyV
       
       {/* Centered container for orbital bars */}
       <Box sx={{ 
-        position: 'relative',
+        position: 'absolute',
+        inset: 0,
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -360,8 +505,14 @@ function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyV
         orbitalType="e"
         index={0}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       <EnergyLevel 
         label="dx²-y²" 
@@ -371,8 +522,14 @@ function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyV
         orbitalType="e"
         index={1}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       
       {/* t2 orbitals (higher energy) - all at same energy level */}
@@ -384,8 +541,14 @@ function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyV
         orbitalType="t2"
         index={2}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       <EnergyLevel 
         label="dxz" 
@@ -395,8 +558,14 @@ function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyV
         orbitalType="t2"
         index={3}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       <EnergyLevel 
         label="dyz" 
@@ -406,24 +575,31 @@ function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyV
         orbitalType="t2"
         index={4}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       </Box>
       
       {/* Splitting indicator */}
       <motion.div
         animate={{ 
-          y: '50%',
-          height: Math.abs(energies.t2 - energies.e) * 25
+          height: energyIndicatorHeight
         }}
         transition={{ duration: 0.5 }}
         style={{
           position: 'absolute',
-          right: '20px',
+          right: '12px',
+          bottom: indicatorBottom,
           width: '4px',
           background: 'linear-gradient(to top, #4fc3f7, #ff6b6b)',
-          borderRadius: '2px'
+          borderRadius: '2px',
+          transformOrigin: 'bottom center'
         }}
       />
     </Box>
@@ -431,15 +607,36 @@ function TetrahedralDiagram({ energies, splitting, isDarkMode = true, maxEnergyV
 }
 
 // Square planar energy diagram
-function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergyValue = 3.0 }) {
+function SquarePlanarDiagram({
+  energies,
+  isDarkMode = true,
+  diagramWidth = 360,
+  diagramHeight = 300,
+  minEnergyValue = 0,
+  energyScale = 3.0,
+  baselinePadding = 0.2,
+  groundLineOffset = '6%'
+}: { energies: SquarePlanarEnergies } & DiagramCommonProps) {
+  const topPaddingPx = Math.min(44, Math.max(16, diagramHeight * 0.1));
+  const bottomPaddingPx = Math.min(72, Math.max(24, diagramHeight * 0.18));
+  const groundLineOffsetPx =
+    typeof groundLineOffset === 'string'
+      ? Math.max(bottomPaddingPx - 20, 12)
+      : groundLineOffset;
+  const groundLabelBottomPx = typeof groundLineOffsetPx === 'number'
+    ? Math.max(0, groundLineOffsetPx - 24)
+    : Math.max(0, bottomPaddingPx * 0.3);
+
   return (
     <Box sx={{ 
       position: 'relative', 
-      height: '100%', 
       width: '100%',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center'
+      height: '100%',
+      minHeight: 'inherit',
+      overflow: 'hidden',
+      paddingTop: `${topPaddingPx}px`,
+      paddingBottom: `${bottomPaddingPx}px`,
+      boxSizing: 'border-box'
     }}>
       {/* Ground state reference line */}
       <Box
@@ -447,7 +644,7 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergy
           position: 'absolute',
           left: 0,
           right: 0,
-          top: '90%',
+          bottom: groundLineOffsetPx,
           height: '2px',
           background: isDarkMode ? '#888' : '#666',
           opacity: 0.8,
@@ -460,7 +657,7 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergy
         sx={{
           position: 'absolute',
           left: '5px',
-          top: '5%',
+          top: `${Math.max(8, topPaddingPx / 3)}px`,
           color: isDarkMode ? '#888' : '#999',
           fontSize: '0.7rem'
         }}
@@ -471,7 +668,7 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergy
         sx={{
           position: 'absolute',
           left: '5px',
-          bottom: '1%',
+          bottom: `${groundLabelBottomPx}px`,
           color: isDarkMode ? '#888' : '#999',
           fontSize: '0.7rem'
         }}
@@ -481,9 +678,13 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergy
       
       {/* Centered container for orbital bars */}
       <Box sx={{ 
-        position: 'relative',
+        position: 'absolute',
+        inset: 0,
         width: '100%',
-        height: '100%'
+        height: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center'
       }}>
       {/* Lower energy orbitals - point away from ligands */}
       <EnergyLevel 
@@ -494,8 +695,14 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergy
         orbitalType="lower"
         index={0}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       <EnergyLevel 
         label="dyz" 
@@ -505,8 +712,14 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergy
         orbitalType="lower"
         index={1}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       
       {/* High energy orbital - points along z-axis */}
@@ -518,8 +731,14 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergy
         orbitalType="moderate"
         index={2}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       
       {/* High energy orbital - in xy-plane but rotated 45° */}
@@ -531,8 +750,14 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergy
         orbitalType="moderate"
         index={3}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       
       {/* Highest energy orbital - points directly at 4 ligands */}
@@ -544,50 +769,125 @@ function SquarePlanarDiagram({ energies, splitting, isDarkMode = true, maxEnergy
         orbitalType="highest"
         index={4}
         totalOrbitals={5}
-        maxEnergyValue={maxEnergyValue}
+        minEnergyValue={minEnergyValue}
+        energyScale={energyScale}
+        baselinePadding={baselinePadding}
         isDarkMode={isDarkMode}
+        diagramWidth={diagramWidth}
+        containerHeight={diagramHeight}
+        topPaddingPx={topPaddingPx}
+        bottomPaddingPx={bottomPaddingPx}
       />
       </Box>
     </Box>
   );
 }
 
-export default function OrbitalSplittingDiagram({ 
-  geometryType, 
-  distance, 
+type OrbitalSplittingDiagramProps = {
+  geometryType: GeometryType;
+  distance: number;
+  ligandStrength: number;
+  isDarkMode?: boolean;
+};
+
+export default function OrbitalSplittingDiagram({
+  geometryType,
+  distance,
   ligandStrength,
   isDarkMode = true
-}) {
-  const energies = useMemo(() => {
+}: OrbitalSplittingDiagramProps) {
+  const energies = useMemo<EnergyResult | undefined>(() => {
     console.log(`🔄 Recalculating energies for: ${geometryType}, distance: ${distance}, ligandStrength: ${ligandStrength}`);
     const result = calculateSplitting(geometryType, distance, ligandStrength);
     console.log(`✅ Final energies:`, result);
     return result;
   }, [geometryType, distance, ligandStrength]);
 
-  // Calculate the maximum energy value for proper scaling
-  const maxEnergyValue = useMemo(() => {
-    if (!energies) return 3.0;
-    // Get all energy values (excluding splitting)
-    const energyValues = geometryType === 'octahedral' 
-      ? [energies.eg, energies.t2g]
-      : geometryType === 'tetrahedral'
-      ? [energies.t2, energies.e]
-      : [energies.dx2y2, energies.dxy, energies.dz2, energies.dxz, energies.dyz];
-    
-    // Find the maximum and minimum energy values
-    const maxEnergy = Math.max(...energyValues);
+  const typedEnergies = useMemo(() => {
+    if (!energies) {
+      return null;
+    }
+
+    if ('eg' in energies && 't2g' in energies) {
+      return { geometry: 'octahedral', data: energies as OctahedralEnergies } as const;
+    }
+
+    if ('t2' in energies && 'e' in energies) {
+      return { geometry: 'tetrahedral', data: energies as TetrahedralEnergies } as const;
+    }
+
+    if ('dx2y2' in energies && 'dxy' in energies) {
+      return { geometry: 'squarePlanar', data: energies as SquarePlanarEnergies } as const;
+    }
+
+    return null;
+  }, [energies]);
+
+  const energyStats = useMemo(() => {
+    if (!typedEnergies) {
+      return {
+        minEnergy: 0,
+        maxEnergy: 3,
+        range: 3,
+        baselinePadding: 0.2,
+        topPadding: 0.5,
+        energyScale: 3.7
+      };
+    }
+
+    const { geometry, data } = typedEnergies;
+
+    const energyValues =
+      geometry === 'octahedral'
+        ? [data.eg, data.t2g]
+        : geometry === 'tetrahedral'
+        ? [data.t2, data.e]
+        : [data.dx2y2, data.dxy, data.dz2, data.dxz, data.dyz];
+
     const minEnergy = Math.min(...energyValues);
-    
-    // Use the range (max - min) plus buffer to scale properly
-    // Add small buffers to ensure orbitals aren't at the very edges
-    const energyRange = maxEnergy - minEnergy;
-    const buffer = Math.max(energyRange * 0.3, 0.5); // Use 30% of range or min 0.5
-    
-    return Math.max(maxEnergy + buffer, Math.abs(minEnergy - buffer));
-  }, [energies, geometryType]);
-  
-  console.log(`📊 maxEnergyValue calculated: ${maxEnergyValue.toFixed(3)}`);
+    const maxEnergy = Math.max(...energyValues);
+    const range = Math.max(maxEnergy - minEnergy, 0.001);
+    const baselinePadding = Math.max(range * 0.1, 0.15);
+    const topPadding = Math.max(range * 0.2, 0.3);
+    const energyScale = range + baselinePadding + topPadding;
+
+    return { minEnergy, maxEnergy, range, baselinePadding, topPadding, energyScale };
+  }, [typedEnergies]);
+
+  console.log('📊 Energy stats:', energyStats);
+
+  const diagramRef = useRef<HTMLDivElement | null>(null);
+  const [diagramSize, setDiagramSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!diagramRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      setDiagramSize((prev) =>
+        prev.width === width && prev.height === height ? prev : { width, height }
+      );
+    });
+
+    observer.observe(diagramRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!diagramRef.current) return;
+    const rect = diagramRef.current.getBoundingClientRect();
+    setDiagramSize({ width: rect.width, height: rect.height });
+  }, [geometryType]);
+
+  const effectiveDiagramWidth = diagramSize.width || 360;
+  const effectiveDiagramHeight = diagramSize.height || 300;
+  const groundLineOffset = effectiveDiagramHeight <= 260 ? '2%' : effectiveDiagramHeight <= 320 ? '4%' : '6%';
+  const splittingValue = typedEnergies?.data.splitting ?? 0;
 
   return (
     <Paper 
@@ -628,78 +928,54 @@ export default function OrbitalSplittingDiagram({
         {geometryType === 'octahedral' ? 'Octahedral (Oh)' : geometryType === 'tetrahedral' ? 'Tetrahedral (Td)' : 'Square Planar (D4h)'}
       </Typography>
       
-      <Box sx={{ 
+      <Box ref={diagramRef} sx={{ 
         position: 'relative', 
         flex: 1,
-        minHeight: { xs: '200px', sm: '250px', md: '300px' },
-        maxHeight: { xs: '300px', md: '400px' }
+        minHeight: { xs: '140px', sm: '220px', md: '300px' },
+        height: '100%',
+        maxHeight: { xs: 'none', md: '420px' },
+        minWidth: 0
       }}>
-        {geometryType === 'octahedral' ? (
-          <OctahedralDiagram energies={energies} splitting={energies.splitting} isDarkMode={isDarkMode} maxEnergyValue={maxEnergyValue} />
-        ) : geometryType === 'tetrahedral' ? (
-          <TetrahedralDiagram energies={energies} splitting={energies.splitting} isDarkMode={isDarkMode} maxEnergyValue={maxEnergyValue} />
-        ) : (
-          <SquarePlanarDiagram energies={energies} splitting={energies.splitting} isDarkMode={isDarkMode} maxEnergyValue={maxEnergyValue} />
+        {typedEnergies && typedEnergies.geometry === 'octahedral' && (
+          <OctahedralDiagram
+            energies={typedEnergies.data}
+            isDarkMode={isDarkMode}
+            diagramWidth={effectiveDiagramWidth}
+            diagramHeight={effectiveDiagramHeight}
+            minEnergyValue={energyStats.minEnergy}
+            energyScale={energyStats.energyScale}
+            baselinePadding={energyStats.baselinePadding}
+            groundLineOffset={groundLineOffset}
+          />
+        )}
+        {typedEnergies && typedEnergies.geometry === 'tetrahedral' && (
+          <TetrahedralDiagram
+            energies={typedEnergies.data}
+            isDarkMode={isDarkMode}
+            diagramWidth={effectiveDiagramWidth}
+            diagramHeight={effectiveDiagramHeight}
+            minEnergyValue={energyStats.minEnergy}
+            energyScale={energyStats.energyScale}
+            baselinePadding={energyStats.baselinePadding}
+            groundLineOffset={groundLineOffset}
+          />
+        )}
+        {typedEnergies && typedEnergies.geometry === 'squarePlanar' && (
+          <SquarePlanarDiagram
+            energies={typedEnergies.data}
+            isDarkMode={isDarkMode}
+            diagramWidth={effectiveDiagramWidth}
+            diagramHeight={effectiveDiagramHeight}
+            minEnergyValue={energyStats.minEnergy}
+            energyScale={energyStats.energyScale}
+            baselinePadding={energyStats.baselinePadding}
+            groundLineOffset={groundLineOffset}
+          />
         )}
       </Box>
       
-      {/* Orbital Legend */}
-      <Box sx={{ mt: { xs: 1, sm: 2 }, textAlign: 'center' }}>
-        <Typography 
-          variant="caption" 
-          sx={{ 
-            color: isDarkMode ? '#888' : '#999', 
-            display: 'block', 
-            mb: 1,
-            fontSize: { xs: '0.7rem', sm: '0.8rem' }
-          }}
-        >
-          Orbital Legend (left to right):
-        </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
-          {geometryType === 'octahedral' ? (
-            <>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ width: 12, height: 2, backgroundColor: '#4fc3f7' }} />
-                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>t₂g</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ width: 12, height: 2, backgroundColor: '#ff6b6b' }} />
-                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>eg</Typography>
-              </Box>
-            </>
-          ) : geometryType === 'tetrahedral' ? (
-            <>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ width: 12, height: 2, backgroundColor: '#4fc3f7' }} />
-                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>e</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ width: 12, height: 2, backgroundColor: '#ff6b6b' }} />
-                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>t₂</Typography>
-              </Box>
-            </>
-          ) : (
-            <>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ width: 12, height: 2, backgroundColor: '#4fc3f7' }} />
-                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>Lower</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ width: 12, height: 2, backgroundColor: '#ffa726' }} />
-                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>Moderate</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Box sx={{ width: 12, height: 2, backgroundColor: '#ff6b6b' }} />
-                <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', fontSize: '0.7rem' }}>Highest</Typography>
-              </Box>
-            </>
-          )}
-        </Box>
-      </Box>
-
       {/* Splitting value display */}
-      <Box sx={{ mt: { xs: 1, sm: 2 }, textAlign: 'center' }}>
+      <Box sx={{ mt: { xs: 0.5, sm: 1 }, textAlign: 'center' }}>
         <Typography 
           variant="body2" 
           sx={{ 
@@ -707,18 +983,7 @@ export default function OrbitalSplittingDiagram({
             fontSize: { xs: '0.8rem', sm: '0.9rem' }
           }}
         >
-          Δ = {energies.splitting.toFixed(2)} eV
-        </Typography>
-        <Typography 
-          variant="caption" 
-          sx={{ 
-            color: isDarkMode ? '#666' : '#999', 
-            display: 'block', 
-            mt: 0.5,
-            fontSize: { xs: '0.7rem', sm: '0.8rem' }
-          }}
-        >
-          Distance: {distance.toFixed(1)} Å | Ligand Strength: {ligandStrength}
+        Δ = {splittingValue.toFixed(2)} eV
         </Typography>
       </Box>
     </Paper>
