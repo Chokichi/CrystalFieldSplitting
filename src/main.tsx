@@ -3,6 +3,31 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './App.css'
 
+declare global {
+  interface Window {
+    __REACT_DEVTOOLS_GLOBAL_HOOK__?: any;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  const hook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+  if (!hook || typeof hook !== 'object') {
+    window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
+      supportsFiber: true,
+      renderers: new Map(),
+      rendererInterfaces: new Map(),
+      onCommitFiberRoot() {},
+      onCommitFiberUnmount() {},
+      inject() { return 0; },
+      getFiberRoots() { return new Map(); },
+      onPostCommitFiberRoot() {},
+      onPostCommitFiberUnmount() {},
+      _renderers: new Map(),
+      _fiberRoots: new Map(),
+    };
+  }
+}
+
 // Suppress React DevTools version compatibility warnings
 if (process.env.NODE_ENV === 'development') {
   const originalError = console.error;

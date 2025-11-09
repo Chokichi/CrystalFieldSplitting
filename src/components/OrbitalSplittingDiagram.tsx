@@ -43,8 +43,6 @@ function calculateSplitting(
   // Map distance from 1-4 range to energy multiplier 0.05 to 1.0
   const distanceScaler = 0.05 + (4.0 - distance) / 3.0 * 0.95; // distance=4 → 0.05, distance=1 → 0.95
   
-  console.log(`🔬 Crystal Field Calculation - Geometry: ${geometry}, Distance: ${distance}, Ligand Strength: ${ligandStrength}`);
-  console.log(`📊 Base value: ${base.toFixed(3)}, Distance scaler: ${distanceScaler.toFixed(3)}`);
   
   if (geometry === "octahedral") {
     // All orbitals are raised in energy, scaled by distance
@@ -54,10 +52,6 @@ function calculateSplitting(
       t2g: baseRise - base * distanceScaler * 0.3,     // dxy, dxz, dyz (raised less - least destabilized)
       splitting: base * distanceScaler * 0.6  // Difference between eg and t2g
     };
-    console.log(`🔺 Octahedral Energies:`, energies);
-    console.log(`   eg (dz², dx²-y²): ${energies.eg.toFixed(3)} (highest energy - most destabilized)`);
-    console.log(`   t2g (dxy, dxz, dyz): ${energies.t2g.toFixed(3)} (lower energy - still destabilized but less)`);
-    console.log(`   Δₒ: ${energies.splitting.toFixed(3)}`);
     return energies;
   } else if (geometry === "squarePlanar") {
     // All orbitals are raised in energy, scaled by distance
@@ -70,12 +64,6 @@ function calculateSplitting(
       dyz: baseRise - base * distanceScaler * 0.5,     // lower energy (points out of plane - least destabilized)
       splitting: base * distanceScaler * 0.9  // Difference between highest and lowest
     };
-    console.log(`🔺 Square Planar Energies:`, energies);
-    console.log(`   dx²-y²: ${energies.dx2y2.toFixed(3)} (highest energy - most destabilized, points at ligands)`);
-    console.log(`   dxy: ${energies.dxy.toFixed(3)} (high energy - in xy-plane but rotated 45°, significant interaction)`);
-    console.log(`   dz²: ${energies.dz2.toFixed(3)} (moderate energy - points along z-axis)`);
-    console.log(`   dxz, dyz: ${energies.dxz.toFixed(3)} (lower energy - least destabilized, point away from ligands)`);
-    console.log(`   Δₛₚ: ${energies.splitting.toFixed(3)}`);
     return energies;
   } else if (geometry === "tetrahedral") {
     // Tetrahedral: t2 orbitals (dxy, dxz, dyz) are destabilized MORE than e orbitals (dz², dx²-y²)
@@ -89,10 +77,6 @@ function calculateSplitting(
       e: baseRise - base * distanceScaler * 0.15,       // dz², dx²-y² (lower energy - less destabilized)
       splitting: base * distanceScaler * 0.3  // Δₜ ≈ 0.5Δₒ - smaller than octahedral (0.3 vs 0.6)
     };
-    console.log(`🔺 Tetrahedral Energies:`, energies);
-    console.log(`   t₂ (dxy, dxz, dyz): ${energies.t2.toFixed(3)} (higher energy - more destabilized)`);
-    console.log(`   e (dz², dx²-y²): ${energies.e.toFixed(3)} (lower energy - still destabilized but less)`);
-    console.log(`   Δₜ: ${energies.splitting.toFixed(3)}`);
     return energies;
   }
 }
