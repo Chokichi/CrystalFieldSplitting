@@ -8,6 +8,7 @@ import SwipeableDrawer from '@mui/material/SwipeableDrawer';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import CircularProgress from '@mui/material/CircularProgress';
 import './App.css';
+import type { PerspectiveCamera } from 'three';
 
 type OrbitalKey = 'dxy' | 'dxz' | 'dyz' | 'dz2' | 'dx2y2';
 type GeometryOption = 'octahedral' | 'tetrahedral' | 'squarePlanar';
@@ -96,6 +97,8 @@ function App() {
   const [isControlsDrawerOpen, setIsControlsDrawerOpen] = useState(false);
   const [mobileSplitRatio, setMobileSplitRatio] = useState(0.55);
   const [isSplitResizing, setIsSplitResizing] = useState(false);
+  const cameraRef = useRef<PerspectiveCamera | null>(null);
+  const orbitControlsRef = useRef<any>(null);
   
   // Individual orbital controls
   const [orbitalStates, setOrbitalStates] = useState<Record<OrbitalKey, boolean>>({
@@ -200,6 +203,22 @@ function App() {
     };
   }, [handleSplitResizeMove, stopSplitResize]);
 
+  const resetCameraView = useCallback(() => {
+    const camera = cameraRef.current;
+    const controls = orbitControlsRef.current;
+
+    if (camera) {
+      camera.position.set(6, 6, 5);
+      camera.up.set(0, 0, 1);
+      camera.lookAt(0, 0, 0);
+    }
+
+    if (controls) {
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+  }, []);
+
   const metalSceneCard = (
     <Paper
       elevation={3}
@@ -214,6 +233,26 @@ function App() {
         position: 'relative'
       }}
     >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          zIndex: 12,
+          display: 'flex',
+          gap: 1
+        }}
+      >
+        <Button
+          size="small"
+          variant="contained"
+          color="primary"
+          onClick={resetCameraView}
+        >
+          Reset View
+        </Button>
+      </Box>
+
       {showOrbitals && (
         <Box
           sx={{
@@ -272,6 +311,7 @@ function App() {
           left: 0
         }}
         onCreated={({ camera }) => {
+          cameraRef.current = camera as PerspectiveCamera;
           camera.up.set(0, 0, 1);
           camera.lookAt(0, 0, 0);
         }}
@@ -299,6 +339,7 @@ function App() {
             enableRotate={true}
             minDistance={3}
             maxDistance={20}
+            ref={orbitControlsRef}
           />
         </Suspense>
       </Canvas>

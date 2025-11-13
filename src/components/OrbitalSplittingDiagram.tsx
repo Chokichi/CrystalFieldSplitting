@@ -781,10 +781,7 @@ export default function OrbitalSplittingDiagram({
   isDarkMode = true
 }: OrbitalSplittingDiagramProps) {
   const energies = useMemo<EnergyResult | undefined>(() => {
-    console.log(`🔄 Recalculating energies for: ${geometryType}, distance: ${distance}, ligandStrength: ${ligandStrength}`);
-    const result = calculateSplitting(geometryType, distance, ligandStrength);
-    console.log(`✅ Final energies:`, result);
-    return result;
+    return calculateSplitting(geometryType, distance, ligandStrength);
   }, [geometryType, distance, ligandStrength]);
 
   const typedEnergies = useMemo(() => {
@@ -837,8 +834,6 @@ export default function OrbitalSplittingDiagram({
 
     return { minEnergy, maxEnergy, range, baselinePadding, topPadding, energyScale };
   }, [typedEnergies]);
-
-  console.log('📊 Energy stats:', energyStats);
 
   const diagramRef = useRef<HTMLDivElement | null>(null);
   const [diagramSize, setDiagramSize] = useState({ width: 0, height: 0 });

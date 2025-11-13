@@ -1,10 +1,9 @@
 // @ts-nocheck
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sphere } from '@react-three/drei/core/shapes';
 import { Text } from '@react-three/drei/core/Text';
-import { Billboard } from '@react-three/drei/core/Billboard';
-import { DoubleSide, Vector3 } from 'three';
+import { DoubleSide, Vector3, Group } from 'three';
 import { ParametricGeometry } from 'three/examples/jsm/geometries/ParametricGeometry.js';
 
 // Create d-orbital geometry using mathematical equations
@@ -217,22 +216,57 @@ function getSquarePlanarPositions(distance) {
   ];
 }
 
-// Billboard text component that always faces the camera while maintaining upright orientation
-function BillboardText({ position, children, isDarkMode, fontSize = 0.5, ...props }) {
+const tempVec = new Vector3();
+
+function BillboardText({ position, axis = 'generic', children, isDarkMode, fontSize = 0.5, ...props }) {
+  const groupRef = useRef<Group>(null);
+  const textRef = useRef(null);
+  const lastLogRef = useRef(0);
+
+  useFrame(({ camera, clock }) => {
+    const group = groupRef.current;
+    const text = textRef.current;
+    if (!group || !text) return;
+
+    if (axis === 'z') {
+      const now = clock.getElapsedTime();
+      if (now - lastLogRef.current >= 10) {
+        lastLogRef.current = now;
+      }
+    }
+
+    tempVec.copy(camera.position);
+    tempVec.z = group.position.z;
+    group.up.set(0, 0, 1);
+    group.lookAt(tempVec);
+
+    text.rotation.set(0, Math.PI, 0);
+
+    if (axis === 'z') {
+      const dz = camera.position.z - group.position.z;
+      text.rotation.x = dz >= 0 ? 0 : Math.PI;
+      text.rotation.y = dz >= 0 ? 0 : Math.PI;
+      text.rotation.z = Math.PI;
+    } else {
+      text.rotation.x = 0;
+      text.rotation.z = 0;
+    }
+  });
+
   return (
-    <Billboard position={position} follow lockZ>
+    <group ref={groupRef} position={position}>
       <Text
+        ref={textRef}
         fontSize={fontSize}
         anchorX="center"
         anchorY="middle"
-        rotation={[Math.PI, 0, 0]}
         outlineWidth={0.05}
         outlineColor={isDarkMode ? '#000000' : '#ffffff'}
         {...props}
       >
         {children}
       </Text>
-    </Billboard>
+    </group>
   );
 }
 
@@ -242,8 +276,9 @@ function AxisLabels({ maxDistance, isDarkMode = true }) {
   // Adjust scale factor for better visibility at different distances
   const labelOffset = Math.max(1.0, maxDistance * 1.5);
   const axisColor = isDarkMode ? '#ffffff' : '#000000';
-  const lineColor = isDarkMode ? '#888888' : '#cccccc';
-  const lineLength = labelOffset * 0.8;
+  const lineColor = isDarkMode ? '#666666' : '#555555';
+  const lineLength = Math.max(maxDistance + 0.5, labelOffset);
+  const axisRadius = isDarkMode ? 0.014 : 0.012;
   
   // Scale font size based on distance to maintain readability
   const fontSize = 0.3 + (maxDistance / 12); // Scale from 0.3 to ~0.6 as distance increases
@@ -256,20 +291,14 @@ function AxisLabels({ maxDistance, isDarkMode = true }) {
         color={axisColor}
         isDarkMode={isDarkMode}
         fontSize={fontSize}
+        axis="x"
       >
         X
       </BillboardText>
-      <line>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={2}
-            array={new Float32Array([0, 0, 0, lineLength, 0, 0])}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <lineBasicMaterial color={lineColor} opacity={0.6} transparent />
-      </line>
+      <mesh rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[axisRadius, axisRadius, maxDistance * 2, 12]} />
+        <meshBasicMaterial color={lineColor} transparent opacity={isDarkMode ? 0.7 : 0.9} />
+      </mesh>
       
       {/* Y-axis label and line */}
       <BillboardText
@@ -277,20 +306,14 @@ function AxisLabels({ maxDistance, isDarkMode = true }) {
         color={axisColor}
         isDarkMode={isDarkMode}
         fontSize={fontSize}
+        axis="y"
       >
         Y
       </BillboardText>
-      <line>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={2}
-            array={new Float32Array([0, 0, 0, 0, lineLength, 0])}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <lineBasicMaterial color={lineColor} opacity={0.6} transparent />
-      </line>
+      <mesh>
+        <cylinderGeometry args={[axisRadius, axisRadius, maxDistance * 2, 12]} />
+        <meshBasicMaterial color={lineColor} transparent opacity={isDarkMode ? 0.7 : 0.9} />
+      </mesh>
       
       {/* Z-axis label and line */}
       <BillboardText
@@ -298,20 +321,14 @@ function AxisLabels({ maxDistance, isDarkMode = true }) {
         color={axisColor}
         isDarkMode={isDarkMode}
         fontSize={fontSize}
+        axis="z"
       >
         Z
       </BillboardText>
-      <line>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={2}
-            array={new Float32Array([0, 0, 0, 0, 0, lineLength])}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <lineBasicMaterial color={lineColor} opacity={0.6} transparent />
-      </line>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[axisRadius, axisRadius, maxDistance * 2, 12]} />
+        <meshBasicMaterial color={lineColor} transparent opacity={isDarkMode ? 0.7 : 0.9} />
+      </mesh>
     </group>
   );
 }
