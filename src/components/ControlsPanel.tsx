@@ -19,11 +19,62 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { motion } from 'framer-motion';
 
+export function LigandDistanceControl({ distance, setDistance, isDarkMode }) {
+  return (
+    <Paper
+      elevation={2}
+      sx={{
+        p: { xs: 1, sm: 2 },
+        background: isDarkMode
+          ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)'
+          : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
+        border: isDarkMode ? '1px solid #333' : '1px solid #e0e0e0'
+      }}
+    >
+      <Typography
+        variant="body2"
+        sx={{
+          mb: 1,
+          color: isDarkMode ? '#e0e0e0' : '#424242',
+          fontSize: { xs: '0.8rem', sm: '0.9rem' }
+        }}
+      >
+        Ligand Distance: {distance.toFixed(1)} Å
+      </Typography>
+      <Slider
+        value={distance}
+        onChange={(_event, value) => setDistance(Array.isArray(value) ? value[0] : value)}
+        min={1.0}
+        max={4.0}
+        step={0.1}
+        sx={{
+          color: isDarkMode ? '#90caf9' : '#1976d2',
+          '& .MuiSlider-thumb': {
+            backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
+          },
+          '& .MuiSlider-track': {
+            backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
+          },
+          '& .MuiSlider-rail': {
+            backgroundColor: isDarkMode ? '#444' : '#bdbdbd',
+          },
+        }}
+      />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+        <Typography variant="caption" sx={{ color: isDarkMode ? '#bdbdbd' : '#616161', fontSize: { xs: '0.7rem', sm: '0.8rem' } }}>
+          Close
+        </Typography>
+        <Typography variant="caption" sx={{ color: isDarkMode ? '#bdbdbd' : '#616161', fontSize: { xs: '0.7rem', sm: '0.8rem' } }}>
+          Far
+        </Typography>
+      </Box>
+    </Paper>
+  );
+}
+
 export default function ControlsPanel({
   geometryType,
   setGeometryType,
-  distance,
-  setDistance,
   ligandStrength,
   setLigandStrength,
   ligands,
@@ -93,61 +144,6 @@ export default function ControlsPanel({
             <MenuItem value="squarePlanar" sx={{ color: isDarkMode ? 'white' : '#212121' }}>Square Planar (D4h)</MenuItem>
           </Select>
         </FormControl>
-      </Box>
-
-      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
-
-      {/* Distance Slider */}
-      <Box sx={{ mb: { xs: 2, sm: 3 } }}>
-        <Typography 
-          variant="body2" 
-          sx={{ 
-            mb: 1, 
-            color: isDarkMode ? '#aaa' : '#666',
-            fontSize: { xs: '0.8rem', sm: '0.9rem' }
-          }}
-        >
-          Ligand Distance: {distance.toFixed(1)} Å
-        </Typography>
-        <Slider
-          value={distance}
-          onChange={(e, value) => setDistance(value)}
-          min={1.0}
-          max={4.0}
-          step={0.1}
-          sx={{
-            color: isDarkMode ? '#90caf9' : '#1976d2',
-            '& .MuiSlider-thumb': {
-              backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
-            },
-            '& .MuiSlider-track': {
-              backgroundColor: isDarkMode ? '#90caf9' : '#1976d2',
-            },
-            '& .MuiSlider-rail': {
-              backgroundColor: isDarkMode ? '#444' : '#ddd',
-            },
-          }}
-        />
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              color: isDarkMode ? '#666' : '#999',
-              fontSize: { xs: '0.7rem', sm: '0.8rem' }
-            }}
-          >
-            Close
-          </Typography>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              color: isDarkMode ? '#666' : '#999',
-              fontSize: { xs: '0.7rem', sm: '0.8rem' }
-            }}
-          >
-            Far
-          </Typography>
-        </Box>
       </Box>
 
       <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />

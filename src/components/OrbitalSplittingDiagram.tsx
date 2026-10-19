@@ -772,13 +772,15 @@ type OrbitalSplittingDiagramProps = {
   distance: number;
   ligandStrength: number;
   isDarkMode?: boolean;
+  embedded?: boolean;
 };
 
 export default function OrbitalSplittingDiagram({
   geometryType,
   distance,
   ligandStrength,
-  isDarkMode = true
+  isDarkMode = true,
+  embedded = false
 }: OrbitalSplittingDiagramProps) {
   const energies = useMemo<EnergyResult | undefined>(() => {
     return calculateSplitting(geometryType, distance, ligandStrength);
@@ -870,18 +872,22 @@ export default function OrbitalSplittingDiagram({
 
   return (
     <Paper 
-      elevation={2} 
+      elevation={embedded ? 0 : 2} 
       sx={{ 
         p: { xs: 1, sm: 2 }, 
         height: '100%',
-        background: isDarkMode 
+        background: embedded
+          ? 'transparent'
+          : isDarkMode
           ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)'
           : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
-        border: isDarkMode ? '1px solid #333' : '1px solid #e0e0e0',
+        border: embedded ? 'none' : isDarkMode ? '1px solid #333' : '1px solid #e0e0e0',
+        boxShadow: embedded ? 'none' : undefined,
         display: 'flex',
         flexDirection: 'column'
       }}
     >
+      {!embedded && (
       <Typography 
         variant="h6" 
         sx={{ 
@@ -894,6 +900,7 @@ export default function OrbitalSplittingDiagram({
       >
         Crystal Field Splitting
       </Typography>
+      )}
       
       <Typography 
         variant="body2" 
@@ -910,9 +917,8 @@ export default function OrbitalSplittingDiagram({
       <Box ref={diagramRef} sx={{ 
         position: 'relative', 
         flex: 1,
-        minHeight: { xs: '140px', sm: '220px', md: '300px' },
+        minHeight: 0,
         height: '100%',
-        maxHeight: { xs: 'none', md: '420px' },
         minWidth: 0
       }}>
         {typedEnergies && typedEnergies.geometry === 'octahedral' && (

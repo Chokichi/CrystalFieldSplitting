@@ -1,26 +1,139 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box, Paper, Chip } from '@mui/material';
 import Button from '@mui/material/Button';
-import SwipeableDrawer from '@mui/material/SwipeableDrawer';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import CircularProgress from '@mui/material/CircularProgress';
 import './App.css';
 import type { PerspectiveCamera } from 'three';
+import FloatingCard, {
+  CARD_IDS,
+  clampCard,
+  dockEdgeForPoint,
+  dockSplitters,
+  DockSplitter,
+  layoutCardRects,
+  loadCardLayout,
+  normalizeLayout,
+  previewRect,
+  resolveDockSize,
+  saveCardLayout,
+  viewerBounds,
+  type CardId,
+  type CardLayout,
+  type DockEdge,
+} from './components/FloatingCard';
+import ControlsPanel, { LigandDistanceControl } from './components/ControlsPanel';
 
 type OrbitalKey = 'dxy' | 'dxz' | 'dyz' | 'dz2' | 'dx2y2';
 type GeometryOption = 'octahedral' | 'tetrahedral' | 'squarePlanar';
 
 const MetalComplexScene = lazy(() => import('./components/MetalComplexScene'));
 const OrbitalSplittingDiagram = lazy(() => import('./components/OrbitalSplittingDiagram'));
-const ControlsPanel = lazy(() => import('./components/ControlsPanel'));
 const OrbitalControls = lazy(() => import('./components/OrbitalControls'));
 const OrbitControlsLazy = lazy(async () => {
   const module = await import('@react-three/drei/core/OrbitControls');
   return { default: module.OrbitControls };
 });
+
+type ViewPan = { x: number; y: number };
+
+// Shift-drag shifts the projection instead of the orbit target, so a later drag
+// still spins the model around its own center.
+
+function applyViewPan(camera: PerspectiveCamera, width: number, height: number, pan: ViewPan) {
+  if (width < 1 || height < 1) {
+    return;
+  }
+  if (pan.x === 0 && pan.y === 0) {
+    if (camera.view?.enabled) {
+      camera.clearViewOffset();
+    }
+    return;
+  }
+  const offsetX = -pan.x;
+  const offsetY = -pan.y;
+  const view = camera.view;
+  if (
+    view?.enabled
+    && view.fullWidth === width
+    && view.fullHeight === height
+    && view.offsetX === offsetX
+    && view.offsetY === offsetY
+    && view.width === width
+    && view.height === height
+  ) {
+    return;
+  }
+  camera.setViewOffset(width, height, offsetX, offsetY, width, height);
+}
+
+function ModelViewPan({ panRef }: { panRef: MutableRefObject<ViewPan> }) {
+  const camera = useThree((state) => state.camera) as PerspectiveCamera;
+  const gl = useThree((state) => state.gl);
+  const get = useThree((state) => state.get);
+
+  useEffect(() => {
+    const element = gl.domElement;
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    const isPanGesture = (event: PointerEvent) => (
+      event.button === 2 || (event.button === 0 && (event.shiftKey || event.ctrlKey || event.metaKey))
+    );
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!isPanGesture(event)) {
+        return;
+      }
+      dragging = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (!dragging) {
+        return;
+      }
+      panRef.current.x += event.clientX - lastX;
+      panRef.current.y += event.clientY - lastY;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+      if (!dragging) {
+        return;
+      }
+      dragging = false;
+      event.stopPropagation();
+    };
+
+    element.addEventListener('pointerdown', onPointerDown, true);
+    window.addEventListener('pointermove', onPointerMove, true);
+    window.addEventListener('pointerup', onPointerUp, true);
+    window.addEventListener('pointercancel', onPointerUp, true);
+    return () => {
+      element.removeEventListener('pointerdown', onPointerDown, true);
+      window.removeEventListener('pointermove', onPointerMove, true);
+      window.removeEventListener('pointerup', onPointerUp, true);
+      window.removeEventListener('pointercancel', onPointerUp, true);
+    };
+  }, [gl, panRef]);
+
+  useFrame(() => {
+    const { width, height } = get().size;
+    applyViewPan(camera, width, height, panRef.current);
+  });
+
+  return null;
+}
 
 const ORBITAL_FILTERS: ReadonlyArray<{
   key: OrbitalKey;
@@ -94,11 +207,12 @@ function App() {
   const [ligandStrength, setLigandStrength] = useState(6);
   const showOrbitals = true;
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [isControlsDrawerOpen, setIsControlsDrawerOpen] = useState(false);
-  const [mobileSplitRatio, setMobileSplitRatio] = useState(0.55);
-  const [isSplitResizing, setIsSplitResizing] = useState(false);
+  const [cardLayout, setCardLayout] = useState<CardLayout>(() => loadCardLayout());
+  const [cardOrder, setCardOrder] = useState<CardId[]>(['settings', 'orbitals', 'diagram']);
+  const [dockPreview, setDockPreview] = useState<{ id: CardId; edge: DockEdge } | null>(null);
   const cameraRef = useRef<PerspectiveCamera | null>(null);
   const orbitControlsRef = useRef<any>(null);
+  const viewPanRef = useRef<ViewPan>({ x: 0, y: 0 });
   
   // Individual orbital controls
   const [orbitalStates, setOrbitalStates] = useState<Record<OrbitalKey, boolean>>({
@@ -132,82 +246,91 @@ function App() {
 
   const selectedLigand = ligands.find(l => l.strength === ligandStrength) || ligands[4];
   const currentTheme = isDarkMode ? darkTheme : lightTheme;
-  const isMobile = useMediaQuery('(max-width:900px)');
-  const splitContainerRef = useRef<HTMLDivElement | null>(null);
-  const splitResizeStateRef = useRef({ startY: 0, startRatio: 0.55, containerHeight: 1 });
-  const previousUserSelectRef = useRef<string>('');
 
-  const handleSplitResizeMove = useCallback((event: PointerEvent) => {
-    const { startY, startRatio, containerHeight } = splitResizeStateRef.current;
-    if (containerHeight <= 0) {
-      return;
-    }
-    const delta = event.clientY - startY;
-    const ratioDelta = delta / containerHeight;
-    const minRatio = 0.12;
-    const maxRatio = 0.75;
-    const nextRatio = Math.min(Math.max(startRatio + ratioDelta, minRatio), maxRatio);
-    setMobileSplitRatio(nextRatio);
+  const updateCard = useCallback((id: CardId, frame: CardLayout[CardId]) => {
+    setCardLayout((current) => {
+      const fitted = frame.dock
+        ? { ...frame, dockSize: resolveDockSize(frame.dock, frame.dockSize, current, id) }
+        : frame;
+      const next: CardLayout = { ...current, [id]: fitted };
+      if (fitted.dock && fitted.dockSize !== current[id].dockSize) {
+        CARD_IDS.forEach((other) => {
+          if (other !== id && next[other].dock === fitted.dock) {
+            next[other] = { ...next[other], dockSize: fitted.dockSize };
+          }
+        });
+      }
+      saveCardLayout(next);
+      return next;
+    });
   }, []);
 
-  const stopSplitResize = useCallback(() => {
-    setIsSplitResizing(false);
-    window.removeEventListener('pointermove', handleSplitResizeMove);
-    window.removeEventListener('pointerup', stopSplitResize);
-    if (typeof document !== 'undefined') {
-      document.body.style.userSelect = previousUserSelectRef.current;
-    }
-  }, [handleSplitResizeMove]);
+  const dropCard = useCallback((id: CardId, frame: CardLayout[CardId], point: { x: number; y: number }) => {
+    setCardLayout((current) => {
+      const edge = dockEdgeForPoint(point.x, point.y, current);
+      let nextFrame = clampCard({ ...frame, dock: null });
+      if (edge) {
+        const siblings = CARD_IDS.filter((cardId) => cardId !== id && current[cardId].dock === edge);
+        const dockSize = resolveDockSize(
+          edge,
+          siblings.length
+            ? current[siblings[0]].dockSize
+            : (edge === 'left' || edge === 'right' ? frame.width : frame.height),
+          current,
+          id
+        );
+        const dockOrder = siblings.reduce((max, cardId) => Math.max(max, current[cardId].dockOrder), 0) + 1;
+        nextFrame = clampCard({
+          ...frame,
+          dock: edge,
+          dockSize,
+          dockOrder,
+          collapsed: false,
+        });
+      }
+      const next: CardLayout = { ...current, [id]: nextFrame };
+      saveCardLayout(next);
+      return next;
+    });
+    setDockPreview(null);
+  }, []);
 
-  const handleSplitResizeStart = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!isMobile) {
-        return;
-      }
-      const container = splitContainerRef.current;
-      if (!container) {
-        return;
-      }
-      const rect = container.getBoundingClientRect();
-      splitResizeStateRef.current = {
-        startY: event.clientY,
-        startRatio: mobileSplitRatio,
-        containerHeight: rect.height || 1,
+  const updateDockWeights = useCallback((a: CardId, weightA: number, b: CardId, weightB: number) => {
+    setCardLayout((current) => {
+      const next = {
+        ...current,
+        [a]: { ...current[a], dockWeight: weightA },
+        [b]: { ...current[b], dockWeight: weightB },
       };
-      previousUserSelectRef.current =
-        typeof document !== 'undefined' ? document.body.style.userSelect : '';
-      if (typeof document !== 'undefined') {
-        document.body.style.userSelect = 'none';
-      }
-      setIsSplitResizing(true);
-      window.addEventListener('pointermove', handleSplitResizeMove);
-      window.addEventListener('pointerup', stopSplitResize);
-      event.preventDefault();
-    },
-    [handleSplitResizeMove, isMobile, mobileSplitRatio, stopSplitResize]
-  );
+      saveCardLayout(next);
+      return next;
+    });
+  }, []);
+
+  const focusCard = useCallback((id: CardId) => {
+    setCardOrder((current) => (current[current.length - 1] === id ? current : [...current.filter((cardId) => cardId !== id), id]));
+  }, []);
 
   useEffect(() => {
-    if (!isMobile && isControlsDrawerOpen) {
-      setIsControlsDrawerOpen(false);
-    }
-  }, [isMobile, isControlsDrawerOpen]);
-
-  useEffect(() => {
-    return () => {
-      window.removeEventListener('pointermove', handleSplitResizeMove);
-      window.removeEventListener('pointerup', stopSplitResize);
-      if (typeof document !== 'undefined') {
-        document.body.style.userSelect = previousUserSelectRef.current;
-      }
+    const clampToViewport = () => {
+      setCardLayout((current) => {
+        const next = normalizeLayout(current);
+        saveCardLayout(next);
+        return next;
+      });
     };
-  }, [handleSplitResizeMove, stopSplitResize]);
+    window.addEventListener('resize', clampToViewport);
+    return () => window.removeEventListener('resize', clampToViewport);
+  }, []);
 
   const resetCameraView = useCallback(() => {
     const camera = cameraRef.current;
     const controls = orbitControlsRef.current;
+    viewPanRef.current.x = 0;
+    viewPanRef.current.y = 0;
 
     if (camera) {
+      camera.clearViewOffset();
       camera.position.set(6, 6, 5);
       camera.up.set(0, 0, 1);
       camera.lookAt(0, 0, 0);
@@ -219,25 +342,30 @@ function App() {
     }
   }, []);
 
+  const view = viewerBounds(cardLayout);
+
   const metalSceneCard = (
     <Paper
       elevation={3}
       sx={{
-        flex: 1,
-        height: '100%',
-        width: '100%',
+        position: 'absolute',
+        left: view.x,
+        top: view.y,
+        width: view.width,
+        height: view.height,
         borderRadius: 0,
+        overflow: 'hidden',
         background: isDarkMode
           ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)'
           : 'linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)',
-        position: 'relative'
       }}
     >
       <Box
         sx={{
           position: 'absolute',
-          top: 12,
-          right: 12,
+          bottom: 16,
+          left: '50%',
+          transform: 'translateX(-50%)',
           zIndex: 12,
           display: 'flex',
           gap: 1
@@ -332,9 +460,10 @@ function App() {
           />
         </Suspense>
 
+        <ModelViewPan panRef={viewPanRef} />
         <Suspense fallback={null}>
           <OrbitControlsLazy
-            enablePan={true}
+            enablePan={false}
             enableZoom={true}
             enableRotate={true}
             minDistance={3}
@@ -353,25 +482,32 @@ function App() {
         distance={distance}
         ligandStrength={ligandStrength}
         isDarkMode={isDarkMode}
+        embedded
       />
     </Suspense>
   );
 
   const controlsContent = (
+    <Suspense fallback={<PanelFallback />}>
+      <ControlsPanel
+        geometryType={geometryType}
+        setGeometryType={setGeometryType}
+        ligandStrength={ligandStrength}
+        setLigandStrength={setLigandStrength}
+        ligands={ligands}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+      />
+    </Suspense>
+  );
+
+  const orbitalToolsContent = (
     <>
-      <Suspense fallback={<PanelFallback />}>
-        <ControlsPanel
-          geometryType={geometryType}
-          setGeometryType={setGeometryType}
-          distance={distance}
-          setDistance={setDistance}
-          ligandStrength={ligandStrength}
-          setLigandStrength={setLigandStrength}
-          ligands={ligands}
-          isDarkMode={isDarkMode}
-          setIsDarkMode={setIsDarkMode}
-        />
-      </Suspense>
+      <LigandDistanceControl
+        distance={distance}
+        setDistance={setDistance}
+        isDarkMode={isDarkMode}
+      />
       <Box sx={{ mt: 2 }}>
         <Suspense fallback={<PanelFallback minHeight={140} />}>
           <OrbitalControls
@@ -386,203 +522,98 @@ function App() {
     </>
   );
 
-  const mobileLayout = (
-    <Box
-      sx={{
-        height: '100vh',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        backgroundColor: currentTheme.palette.background.default
-      }}
-    >
-      <Box
-        ref={splitContainerRef}
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}
-      >
-        <Box
-          sx={{
-            flexGrow: mobileSplitRatio,
-            flexBasis: 0,
-            minHeight: 220,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-        >
-          {metalSceneCard}
-        </Box>
-
-        <Box
-          onPointerDown={handleSplitResizeStart}
-          sx={{
-            flexShrink: 0,
-            height: 18,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'row-resize',
-            touchAction: 'none',
-            userSelect: 'none',
-            opacity: isSplitResizing ? 1 : 0.9
-          }}
-        >
-          <Box
-            sx={{
-              width: 48,
-              height: 4,
-              borderRadius: 999,
-              backgroundColor: isDarkMode ? 'rgba(144, 202, 249, 0.6)' : 'rgba(25, 118, 210, 0.6)'
-            }}
-          />
-        </Box>
-
-        <Box
-          sx={{
-            flexGrow: 1 - mobileSplitRatio,
-            flexBasis: 0,
-            minHeight: 220,
-            minWidth: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            p: { xs: 1, sm: 2 },
-            pt: { xs: 0.5, sm: 1.5 }
-          }}
-        >
-          <Box sx={{ flex: 1, minHeight: 0 }}>
-            {orbitalDiagramContent}
-          </Box>
-        </Box>
-      </Box>
-
-      <Box
-        sx={{
-          flexShrink: 0,
-          p: { xs: 1, sm: 2 },
-          borderTop: `1px solid ${isDarkMode ? '#333' : '#e0e0e0'}`,
-          backgroundColor: isDarkMode ? '#1e1e1e' : '#ffffff'
-        }}
-      >
-        <Button
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={() => setIsControlsDrawerOpen(true)}
-        >
-          Open Controls
-        </Button>
-      </Box>
-
-      <SwipeableDrawer
-        anchor="bottom"
-        open={isControlsDrawerOpen}
-        onClose={() => setIsControlsDrawerOpen(false)}
-        onOpen={() => setIsControlsDrawerOpen(true)}
-        disableDiscovery
-        PaperProps={{
-          sx: {
-            background: 'transparent'
-          }
-        }}
-      >
-        <Box
-          sx={{
-            background: isDarkMode
-              ? 'linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%)'
-              : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            p: { xs: 2, sm: 3 },
-            pb: { xs: 4, sm: 5 },
-            maxHeight: '80vh',
-            overflowY: 'auto'
-          }}
-        >
-          {controlsContent}
-          <Button
-            variant="outlined"
-            fullWidth
-            sx={{ mt: 2 }}
-            onClick={() => setIsControlsDrawerOpen(false)}
-          >
-            Close
-          </Button>
-        </Box>
-      </SwipeableDrawer>
-    </Box>
-  );
-
-  const desktopLayout = (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'row',
-        overflow: 'hidden'
-      }}
-    >
-      <Box
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        {metalSceneCard}
-      </Box>
-
-      <Box
-        sx={{
-          flex: 1,
-          minWidth: 0,
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}
-      >
-        <Box
-          sx={{
-            flex: 1,
-            minHeight: 0,
-            p: { xs: 1, sm: 2 },
-            overflow: 'hidden'
-          }}
-        >
-          <Box sx={{ flex: 1, minHeight: 0 }}>
-            {orbitalDiagramContent}
-          </Box>
-        </Box>
-
-        <Box
-          sx={{
-            p: { xs: 1, sm: 2 },
-            borderTop: `1px solid ${isDarkMode ? '#333' : '#e0e0e0'}`,
-            maxHeight: '40vh',
-            overflowY: 'auto'
-          }}
-        >
-          {controlsContent}
-        </Box>
-      </Box>
-    </Box>
-  );
+  const rects = layoutCardRects(cardLayout);
+  const splitters = dockSplitters(cardLayout, rects);
+  const preview = dockPreview ? previewRect(cardLayout, dockPreview.id, dockPreview.edge) : null;
 
   return (
     <ThemeProvider theme={currentTheme}>
       <CssBaseline />
-      {isMobile ? mobileLayout : desktopLayout}
+      <Box
+        sx={{
+          position: 'relative',
+          height: '100vh',
+          width: '100%',
+          overflow: 'hidden',
+          backgroundColor: currentTheme.palette.background.default
+        }}
+      >
+        {metalSceneCard}
+        {preview && (
+          <Box
+            aria-hidden
+            sx={{
+              position: 'absolute',
+              left: preview.x,
+              top: preview.y,
+              width: preview.width,
+              height: preview.height,
+              zIndex: 11,
+              pointerEvents: 'none',
+              border: `2px solid ${isDarkMode ? 'rgba(144, 202, 249, 0.9)' : 'rgba(25, 118, 210, 0.9)'}`,
+              background: isDarkMode ? 'rgba(144, 202, 249, 0.16)' : 'rgba(25, 118, 210, 0.12)',
+            }}
+          />
+        )}
+        <FloatingCard
+          title="Crystal Field Splitting"
+          frame={cardLayout.diagram}
+          rect={rects.diagram}
+          zIndex={cardLayout.diagram.dock ? 12 : 20 + cardOrder.indexOf('diagram')}
+          isDarkMode={isDarkMode}
+          fillBody
+          onChange={(frame) => updateCard('diagram', frame)}
+          onDrop={(frame, point) => dropCard('diagram', frame, point)}
+          dockEdgeAt={(x, y) => dockEdgeForPoint(x, y, cardLayout)}
+          onDockPreview={(edge) => setDockPreview(edge ? { id: 'diagram', edge } : null)}
+          onFocus={() => focusCard('diagram')}
+        >
+          <Box sx={{ flex: 1, minHeight: 0, height: '100%' }}>
+            {orbitalDiagramContent}
+          </Box>
+        </FloatingCard>
+        <FloatingCard
+          title="Settings"
+          frame={cardLayout.settings}
+          rect={rects.settings}
+          zIndex={cardLayout.settings.dock ? 12 : 20 + cardOrder.indexOf('settings')}
+          isDarkMode={isDarkMode}
+          onChange={(frame) => updateCard('settings', frame)}
+          onDrop={(frame, point) => dropCard('settings', frame, point)}
+          dockEdgeAt={(x, y) => dockEdgeForPoint(x, y, cardLayout)}
+          onDockPreview={(edge) => setDockPreview(edge ? { id: 'settings', edge } : null)}
+          onFocus={() => focusCard('settings')}
+        >
+          <Box sx={{ p: 1.5 }}>
+            {controlsContent}
+          </Box>
+        </FloatingCard>
+        <FloatingCard
+          title="Distance & Orbitals"
+          frame={cardLayout.orbitals}
+          rect={rects.orbitals}
+          zIndex={cardLayout.orbitals.dock ? 12 : 20 + cardOrder.indexOf('orbitals')}
+          isDarkMode={isDarkMode}
+          onChange={(frame) => updateCard('orbitals', frame)}
+          onDrop={(frame, point) => dropCard('orbitals', frame, point)}
+          dockEdgeAt={(x, y) => dockEdgeForPoint(x, y, cardLayout)}
+          onDockPreview={(edge) => setDockPreview(edge ? { id: 'orbitals', edge } : null)}
+          onFocus={() => focusCard('orbitals')}
+        >
+          <Box sx={{ p: 1.5 }}>
+            {orbitalToolsContent}
+          </Box>
+        </FloatingCard>
+        {splitters.map((splitter) => (
+          <DockSplitter
+            key={`${splitter.a}-${splitter.b}`}
+            splitter={splitter}
+            layout={cardLayout}
+            isDarkMode={isDarkMode}
+            onWeights={updateDockWeights}
+          />
+        ))}
+      </Box>
     </ThemeProvider>
   );
 }
