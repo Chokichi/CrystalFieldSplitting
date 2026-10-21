@@ -3,13 +3,8 @@ import {
   Box,
   Typography,
   Slider,
-  Paper,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Chip
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const orbitalInfo = {
   dz2: { name: 'dz²', color: '#4fc3f7' },
@@ -34,50 +29,23 @@ export default function OrbitalControls({
   };
 
   return (
-    <Paper 
-      elevation={2} 
-      sx={{ 
-        p: 1.5,
-        background: isDarkMode 
-          ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
-        border: isDarkMode ? '1px solid #333' : '1px solid #e0e0e0'
-      }}
-    >
-      <Typography 
-        variant="h6" 
-        sx={{ 
-          mb: 1, 
-          color: isDarkMode ? '#90caf9' : '#1976d2', 
-          fontWeight: 'bold',
-          fontSize: { xs: '0.9rem', sm: '1.1rem' }
+    <Box sx={{ mt: 1.5 }}>
+      <Typography
+        variant="body2"
+        sx={{
+          mb: 0.5,
+          color: isDarkMode ? '#e0e0e0' : '#424242',
+          fontSize: { xs: '0.8rem', sm: '0.9rem' }
         }}
       >
-        D-Orbital Controls
+        Orbital Scales
       </Typography>
-
-      <Accordion 
-        defaultExpanded 
-        sx={{ 
-          background: 'rgba(144, 202, 249, 0.1)',
-          border: '1px solid rgba(144, 202, 249, 0.3)',
-          '&:before': { display: 'none' }
-        }}
-      >
-        <AccordionSummary 
-          expandIcon={<ExpandMoreIcon sx={{ color: isDarkMode ? '#90caf9' : '#1976d2' }} />}
-        >
-          <Typography variant="body2" sx={{ color: isDarkMode ? '#90caf9' : '#1976d2', fontWeight: 'bold' }}>
-            Orbital Scales
-          </Typography>
-        </AccordionSummary>
-        
-        <AccordionDetails sx={{ pt: 0.5 }}>
+      <Box>
           {Object.entries(orbitalInfo).map(([orbitalType, info]) => (
             <Box 
               key={orbitalType} 
               sx={{ 
-                mb: 1,
+                mb: 0.25,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1.5
@@ -147,11 +115,9 @@ export default function OrbitalControls({
               />
             </Box>
           ))}
-        </AccordionDetails>
-      </Accordion>
+      </Box>
 
-      {/* Quick Actions */}
-      <Box sx={{ mt: 1.5, display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+      <Box sx={{ mt: 0.5, display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
         <Chip
           label="Show All"
           size="small"
@@ -207,6 +173,6 @@ export default function OrbitalControls({
           }}
         />
       </Box>
-    </Paper>
+    </Box>
   );
 }

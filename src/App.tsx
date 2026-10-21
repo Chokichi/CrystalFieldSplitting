@@ -508,8 +508,7 @@ function App() {
         setDistance={setDistance}
         isDarkMode={isDarkMode}
       />
-      <Box sx={{ mt: 2 }}>
-        <Suspense fallback={<PanelFallback minHeight={140} />}>
+      <Suspense fallback={<PanelFallback minHeight={140} />}>
           <OrbitalControls
             orbitalStates={orbitalStates}
             setOrbitalStates={setOrbitalStates}
@@ -517,8 +516,7 @@ function App() {
             setOrbitalScales={setOrbitalScales}
             isDarkMode={isDarkMode}
           />
-        </Suspense>
-      </Box>
+      </Suspense>
     </>
   );
 
@@ -584,7 +582,7 @@ function App() {
           onDockPreview={(edge) => setDockPreview(edge ? { id: 'settings', edge } : null)}
           onFocus={() => focusCard('settings')}
         >
-          <Box sx={{ p: 1.5 }}>
+          <Box sx={{ px: 1.5, py: 1.25 }}>
             {controlsContent}
           </Box>
         </FloatingCard>
@@ -600,7 +598,7 @@ function App() {
           onDockPreview={(edge) => setDockPreview(edge ? { id: 'orbitals', edge } : null)}
           onFocus={() => focusCard('orbitals')}
         >
-          <Box sx={{ p: 1.5 }}>
+          <Box sx={{ px: 1.5, pt: 1, pb: 1.25 }}>
             {orbitalToolsContent}
           </Box>
         </FloatingCard>

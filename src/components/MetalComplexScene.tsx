@@ -51,21 +51,34 @@ function makeDOrbitalGeometry(
 }
 
 // D-orbital component with proper mathematical geometry
-function DOrbital({ type, position, rotation, color, opacity = 0.4, scale = 1 }) {
+function DOrbital({ type, position, rotation, color, opacity = 0.4, scale = 1, flat = false }) {
   const geometry = useMemo(() => {
     return makeDOrbitalGeometry(type, scale, 80);
   }, [type, scale]);
 
   return (
-    <mesh position={position} rotation={rotation}>
+    <mesh position={position} rotation={rotation} renderOrder={1}>
       <primitive object={geometry} />
-      <meshStandardMaterial
-        color={color}
-        transparent
-        opacity={opacity}
-        side={DoubleSide}
-        wireframe={false}
-      />
+      {flat ? (
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={opacity}
+          side={DoubleSide}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      ) : (
+        <meshStandardMaterial
+          color={color}
+          transparent
+          opacity={opacity}
+          side={DoubleSide}
+          depthWrite={false}
+          roughness={0.4}
+          metalness={0}
+        />
+      )}
     </mesh>
   );
 }
@@ -99,19 +112,29 @@ function Ligand({ position, color }) {
 }
 
 // D-orbital visualization using mathematical equations
-function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
+function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales, isDarkMode = true }) {
   if (!showOrbitals) return null;
 
   // Different colors for each orbital type
-  const orbitalColors = {
-    dxy: '#4fc3f7',   // Cyan
-    dxz: '#66bb6a',   // Green
-    dyz: '#ef5350',   // Red
-    dz2: '#26c6da',   // Light cyan
-    dx2y2: '#ab47bc'  // Purple
-  };
-  
-  const opacity = Math.max(0.1, 0.4 - distance * 0.1);
+  const orbitalColors = isDarkMode
+    ? {
+        dxy: '#80d8ff',
+        dxz: '#b2ff59',
+        dyz: '#ff8a80',
+        dz2: '#84ffff',
+        dx2y2: '#ea80fc',
+      }
+    : {
+        dxy: '#4fc3f7',
+        dxz: '#66bb6a',
+        dyz: '#ef5350',
+        dz2: '#26c6da',
+        dx2y2: '#ab47bc',
+      };
+
+  const opacity = isDarkMode
+    ? Math.max(0.72, 0.9 - distance * 0.04)
+    : Math.max(0.1, 0.4 - distance * 0.1);
   const baseScale = Math.max(0.5, 1.2 - distance * 0.2); // Base scale based on distance
 
   return (
@@ -124,6 +147,7 @@ function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
           rotation={[0, 0, 0]} 
           color={orbitalColors.dxy}
           opacity={opacity}
+          flat={isDarkMode}
           scale={baseScale * orbitalScales.dxy}
         />
       )}
@@ -136,6 +160,7 @@ function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
           rotation={[0, 0, 0]} 
           color={orbitalColors.dxz}
           opacity={opacity}
+          flat={isDarkMode}
           scale={baseScale * orbitalScales.dxz}
         />
       )}
@@ -148,6 +173,7 @@ function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
           rotation={[0, 0, 0]} 
           color={orbitalColors.dyz}
           opacity={opacity}
+          flat={isDarkMode}
           scale={baseScale * orbitalScales.dyz}
         />
       )}
@@ -160,6 +186,7 @@ function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
           rotation={[0, 0, 0]} 
           color={orbitalColors.dz2}
           opacity={opacity}
+          flat={isDarkMode}
           scale={baseScale * orbitalScales.dz2}
         />
       )}
@@ -172,6 +199,7 @@ function DOrbitals({ showOrbitals, distance, orbitalStates, orbitalScales }) {
           rotation={[0, 0, 0]} 
           color={orbitalColors.dx2y2}
           opacity={opacity}
+          flat={isDarkMode}
           scale={baseScale * orbitalScales.dx2y2}
         />
       )}
@@ -368,6 +396,7 @@ export default function MetalComplexScene({
         distance={distance}
         orbitalStates={orbitalStates}
         orbitalScales={orbitalScales}
+        isDarkMode={isDarkMode}
       />
       
       {/* Ligands */}

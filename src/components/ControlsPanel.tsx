@@ -9,32 +9,17 @@ import {
   MenuItem,
   Switch,
   FormControlLabel,
-  Paper,
   Chip,
-  Divider,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
+  Divider
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { motion } from 'framer-motion';
 
 export function LigandDistanceControl({ distance, setDistance, isDarkMode }) {
   return (
-    <Paper
-      elevation={2}
-      sx={{
-        p: { xs: 1, sm: 2 },
-        background: isDarkMode
-          ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
-        border: isDarkMode ? '1px solid #333' : '1px solid #e0e0e0'
-      }}
-    >
+    <Box>
       <Typography
         variant="body2"
         sx={{
-          mb: 1,
+          mb: 0.5,
           color: isDarkMode ? '#e0e0e0' : '#424242',
           fontSize: { xs: '0.8rem', sm: '0.9rem' }
         }}
@@ -47,6 +32,7 @@ export function LigandDistanceControl({ distance, setDistance, isDarkMode }) {
         min={1.0}
         max={4.0}
         step={0.1}
+        size="small"
         sx={{
           color: isDarkMode ? '#90caf9' : '#1976d2',
           '& .MuiSlider-thumb': {
@@ -60,7 +46,7 @@ export function LigandDistanceControl({ distance, setDistance, isDarkMode }) {
           },
         }}
       />
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: -0.5 }}>
         <Typography variant="caption" sx={{ color: isDarkMode ? '#bdbdbd' : '#616161', fontSize: { xs: '0.7rem', sm: '0.8rem' } }}>
           Close
         </Typography>
@@ -68,7 +54,7 @@ export function LigandDistanceControl({ distance, setDistance, isDarkMode }) {
           Far
         </Typography>
       </Box>
-    </Paper>
+    </Box>
   );
 }
 
@@ -84,42 +70,8 @@ export default function ControlsPanel({
   const selectedLigand = ligands.find(l => l.strength === ligandStrength) || ligands[4];
 
   return (
-    <Paper 
-      elevation={2} 
-      sx={{ 
-        p: { xs: 1, sm: 2 },
-        background: isDarkMode 
-          ? 'linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)'
-          : 'linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%)',
-        border: isDarkMode ? '1px solid #333' : '1px solid #e0e0e0'
-      }}
-    >
-      <Accordion 
-        defaultExpanded 
-        sx={{ 
-          background: 'transparent',
-          boxShadow: 'none',
-          '&:before': { display: 'none' }
-        }}
-      >
-        <AccordionSummary 
-          expandIcon={<ExpandMoreIcon sx={{ color: isDarkMode ? '#90caf9' : '#1976d2' }} />}
-        >
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: isDarkMode ? '#90caf9' : '#1976d2', 
-              fontWeight: 'bold',
-              fontSize: { xs: '1rem', sm: '1.25rem' }
-            }}
-          >
-            Controls
-          </Typography>
-        </AccordionSummary>
-        
-        <AccordionDetails sx={{ pt: 1 }}>
-      {/* Geometry Selection */}
-      <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+    <Box>
+      <Box sx={{ mb: 2 }}>
         <FormControl fullWidth size="small">
           <InputLabel sx={{ color: isDarkMode ? '#aaa' : '#666' }}>Geometry</InputLabel>
           <Select
@@ -146,10 +98,9 @@ export default function ControlsPanel({
         </FormControl>
       </Box>
 
-      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
+      <Divider sx={{ mb: 2, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
 
-      {/* Ligand Selection */}
-      <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+      <Box sx={{ mb: 2 }}>
         <Typography 
           variant="body2" 
           sx={{ 
@@ -214,10 +165,9 @@ export default function ControlsPanel({
         </Box>
       </Box>
 
-      <Divider sx={{ mb: { xs: 2, sm: 3 }, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
+      <Divider sx={{ mb: 2, borderColor: isDarkMode ? '#333' : '#e0e0e0' }} />
 
-      {/* Theme Toggle */}
-      <Box sx={{ mb: { xs: 1, sm: 2 } }}>
+      <Box>
         <FormControlLabel
           control={
             <Switch
@@ -247,36 +197,13 @@ export default function ControlsPanel({
         />
       </Box>
 
-      {/* Info Panel */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Paper 
-          elevation={1} 
-          sx={{ 
-            p: 1.5, 
-            mt: 2,
-            background: 'rgba(144, 202, 249, 0.1)',
-            border: '1px solid rgba(144, 202, 249, 0.3)'
-          }}
-        >
-          <Typography variant="caption" sx={{ color: isDarkMode ? '#90caf9' : '#1976d2', fontWeight: 'bold' }}>
-            💡 Tip:
-          </Typography>
-          <Typography variant="caption" sx={{ color: isDarkMode ? '#aaa' : '#666', display: 'block', mt: 0.5 }}>
-            {geometryType === 'octahedral' 
-              ? 'In octahedral complexes, dz² and dx²-y² orbitals point directly at ligands and are destabilized.'
-              : geometryType === 'tetrahedral'
-              ? 'In tetrahedral complexes, t₂ orbitals (dxy, dxz, dyz) are destabilized more than e orbitals (dz², dx²-y²) due to their orientation.'
-              : 'In square planar complexes, dx²-y² orbital has the highest energy as it points directly at the four ligands.'
-            }
-          </Typography>
-        </Paper>
-      </motion.div>
-        </AccordionDetails>
-      </Accordion>
-    </Paper>
+      <Typography variant="caption" sx={{ color: isDarkMode ? '#bdbdbd' : '#616161', display: 'block', mt: 1.5 }}>
+        {geometryType === 'octahedral'
+          ? 'In octahedral complexes, dz² and dx²-y² orbitals point directly at ligands and are destabilized.'
+          : geometryType === 'tetrahedral'
+          ? 'In tetrahedral complexes, t₂ orbitals (dxy, dxz, dyz) are destabilized more than e orbitals (dz², dx²-y²) due to their orientation.'
+          : 'In square planar complexes, dx²-y² orbital has the highest energy as it points directly at the four ligands.'}
+      </Typography>
+    </Box>
   );
 }
